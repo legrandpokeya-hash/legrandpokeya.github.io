@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCAMINTEL — IA Surveillance Mondiale</title>
+<meta name="theme-color" content="#00d4ff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SCAMINTEL">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚠</div>
+    <div>
+      <div class="logo-text">SCAM<span>INTEL</span></div>
+      <div class="logo-sub">SURVEILLANCE MONDIALE · PROPULSÉ PAR le Service Worltech-security</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-dot-wrap"><div class="live-dot"></div> EN DIRECT</div>
+    <div class="ai-status"><div class="dot"></div> IA ACTIVE</div>
+    <button type="button" class="key-btn key-missing" id="key-indicator" onclick="openSettings()">🔑 CLÉ API</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button type="button" class="tab-btn active" onclick="switchTab('registre',this)">// REGISTRE</button>
+  <button type="button" class="tab-btn" onclick="switchTab('scan',this)">// SCAN IA MONDIAL</button>
+  <button type="button" class="tab-btn" onclick="switchTab('proteger',this)">// ME PROTÉGER</button>
+  <button type="button" class="tab-btn" onclick="switchTab('recuperer',this)">// RÉCUPÉRER & DÉFENSE</button>
+</div>
+
+<main>
+
+<!-- ══════════════ TAB REGISTRE ══════════════ -->
+<div class="tab-panel active" id="tab-registre">
+  <div class="stats-bar" id="stats-bar"></div>
+  <div class="grid-layout">
+    <div>
+      <div class="section-header">
+        <div class="section-title">// Registre des arnaques</div>
+        <div class="section-count" id="entry-count">—</div>
+      </div>
+      <div class="controls">
+        <input class="search-box" id="search-input" type="text" placeholder="Rechercher par nom, type, plateforme...">
+        <button type="button" class="filter-btn active" onclick="setFilter('all',this)">TOUS</button>
+        <button type="button" class="filter-btn" onclick="setFilter('critique',this)">CRITIQUE</button>
+        <button type="button" class="filter-btn" onclick="setFilter('eleve',this)">ÉLEVÉ</button>
+        <button type="button" class="filter-btn" onclick="setFilter('moyen',this)">MOYEN</button>
+        <button type="button" class="add-btn" onclick="openAddModal()">+ AJOUTER</button>
+      </div>
+      <div class="scam-list" id="scam-list"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-block">
+        <div class="section-header"><div class="section-title">// Par catégorie</div></div>
+        <div class="donut-wrap">
+          <svg class="donut" width="160" height="160" viewBox="0 0 160 160" id="donut-svg"></svg>
+        </div>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
+      <div class="panel-block">
+        <div class="section-header"><div class="section-title">// Zones à risque</div></div>
+        <div class="risk-zones">
+          <div class="risk-row"><span>🌍 Afrique de l'Ouest</span><span class="c-accent2">CRITIQUE</span></div>
+          <div class="risk-row"><span>🌏 Asie du Sud-Est</span><span class="c-accent3">ÉLEVÉ</span></div>
+          <div class="risk-row"><span>🌍 Europe de l'Est</span><span class="c-accent3">ÉLEVÉ</span></div>
+          <div class="risk-row"><span>🌎 Amérique Latine</span><span class="c-accent">MOYEN</span></div>
+          <div class="risk-row risk-row-last"><span>🌍 Maghreb</span><span class="c-accent">MOYEN</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB SCAN IA ══════════════ -->
+<div class="tab-panel" id="tab-scan">
+  <div class="scan-intro">
+    <div class="section-header">
+      <div class="section-title">// Scan IA — Détection mondiale en temps réel</div>
+      <div class="section-count">Analyse propulsée par Claude AI</div>
+    </div>
+    <p class="section-desc">
+      Sélectionne une région et un type d'arnaque. L'IA génère un rapport de menaces mondiales actuelles avec les dernières techniques des arnaqueurs.
+    </p>
+  </div>
+
+  <div class="ai-scan-panel">
+    <div class="ai-card">
+      <div class="ai-card-title">⚙ Configuration du scan</div>
+      <div class="config-label">RÉGION CIBLE</div>
+      <div class="region-grid">
+        <button type="button" class="region-btn selected" onclick="selectRegion(this,'Monde entier')">🌐 Monde entier</button>
+        <button type="button" class="region-btn" onclick="selectRegion(this,'Europe')">🇪🇺 Europe</button>
+        <button type="button" class="region-btn" onclick="selectRegion(this,'Afrique')">🌍 Afrique</button>
+        <button type="button" class="region-btn" onclick="selectRegion(this,'Asie')">🌏 Asie</button>
+        <button type="button" class="region-btn" onclick="selectRegion(this,'Amérique du Nord')">🇺🇸 Amér. du Nord</button>
+        <button type="button" class="region-btn" onclick="selectRegion(this,'Amérique Latine')">🌎 Amér. Latine</button>
+        <button type="button" class="region-btn" onclick="selectRegion(this,'Moyen-Orient')">🕌 Moyen-Orient</button>
+        <button type="button" class="region-btn" onclick="selectRegion(this,'Océanie')">🦘 Océanie</button>
+      </div>
+      <div class="config-label config-label-top">TYPE D'ARNAQUE</div>
+      <select id="scan-type" title="Type d'arnaque" class="mb-16">
+        <option value="tous types d'arnaques">Tous types</option>
+        <option value="phishing et usurpation d'identité">Phishing & Usurpation</option>
+        <option value="romance scam et arnaques sentimentales">Romance Scam</option>
+        <option value="crypto et investissements frauduleux">Crypto & Investissement</option>
+        <option value="faux support technique">Faux Support Technique</option>
+        <option value="arnaques à l'emploi et recrutement fictif">Arnaques à l'Emploi</option>
+        <option value="loterie et héritages fictifs">Loterie & Héritages</option>
+        <option value="arnaques immobilières">Arnaques Immobilières</option>
+        <option value="fraude bancaire et aux paiements">Fraude Bancaire</option>
+      </select>
+      <div class="config-label">PÉRIODE</div>
+      <select id="scan-period" title="Période d'analyse" class="mb-20">
+        <option value="dernières 24 heures">Dernières 24h</option>
+        <option value="dernière semaine" selected>Dernière semaine</option>
+        <option value="dernier mois">Dernier mois</option>
+        <option value="dernière année">Dernière année</option>
+      </select>
+      <button type="button" class="scan-launch-btn" id="scan-btn" onclick="launchScan()">⚡ LANCER LE SCAN IA</button>
+    </div>
+
+    <div class="scan-result-panel">
+      <div class="ai-card flex-1">
+        <div class="ai-card-title">📡 Rapport de menaces</div>
+        <div class="scan-output" id="scan-output">
+          <span class="placeholder">// En attente de scan...
+
+Sélectionne une région et un type d'arnaque, puis clique sur LANCER LE SCAN IA pour générer un rapport de menaces mondial en temps réel basé sur les dernières données.</span>
+        </div>
+      </div>
+      <div class="ai-card hidden" id="scan-alerts-card">
+        <div class="ai-card-title">🚨 Alertes prioritaires</div>
+        <div id="scan-alerts"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB PROTÉGER ══════════════ -->
+<div class="tab-panel" id="tab-proteger">
+  <div class="scan-intro">
+    <div class="section-header">
+      <div class="section-title">// Stratégies de protection personnalisées</div>
+      <div class="section-count">Conseils IA + base de connaissances</div>
+    </div>
+    <p class="section-desc">
+      Sélectionne un type d'arnaque pour voir les stratégies de base, puis génère des conseils avancés et personnalisés avec l'IA.
+    </p>
+  </div>
+  <div class="protect-layout">
+    <div>
+      <div class="section-title mb-12">// Types d'arnaques</div>
+      <div class="type-list" id="type-list"></div>
+    </div>
+    <div class="protect-content" id="protect-content">
+      <div class="protect-empty">← Sélectionne un type d'arnaque</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB RÉCUPÉRER & DÉFENSE ══════════════ -->
+<div class="tab-panel" id="tab-recuperer">
+  <div class="scan-intro">
+    <div class="section-header">
+      <div class="section-title">// Récupérer & Défense Technique</div>
+      <div class="section-count">Procédures légales + blindage numérique</div>
+    </div>
+    <p class="section-desc">
+      Récupère ce qui a été volé via les procédures officielles françaises, ou blinde ta sécurité pour empêcher toute future attaque.
+    </p>
+  </div>
+
+  <div class="sub-tabs">
+    <button type="button" class="sub-tab-btn active" onclick="switchSubTab('recuperer-biens', this)">🔄 RÉCUPÉRER MES BIENS</button>
+    <button type="button" class="sub-tab-btn" onclick="switchSubTab('defense-tech', this)">🛡 DÉFENSE TECHNIQUE</button>
+  </div>
+
+  <div class="sub-panel active" id="sub-recuperer-biens">
+    <div class="protect-layout">
+      <div>
+        <div class="section-title mb-12">// Type de préjudice</div>
+        <div class="type-list" id="recovery-type-list"></div>
+      </div>
+      <div class="protect-content" id="recovery-content">
+        <div class="protect-empty">← Sélectionne un type de préjudice</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-panel" id="sub-defense-tech">
+    <div class="protect-layout">
+      <div>
+        <div class="section-title mb-12">// Domaine à sécuriser</div>
+        <div class="type-list" id="defense-type-list"></div>
+      </div>
+      <div class="protect-content" id="defense-content">
+        <div class="protect-empty">← Sélectionne un domaine</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">// Configuration API</div>
+      <button type="button" class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Clé API OpenAI</label>
+        <input type="password" id="api-key-input" placeholder="sk-...">
+      </div>
+      <p class="api-key-hint">La clé est stockée localement dans votre navigateur. Obtenez-la sur platform.openai.com/api-keys</p>
+      <button type="button" class="submit-btn" onclick="saveApiKeyFromInput()">ENREGISTRER LA CLÉ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">// Nouveau signalement</div>
+      <button type="button" class="modal-close" onclick="closeModals()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row"><label>Nom de l'arnaque</label><input type="text" id="f-name" placeholder="Ex: Faux support Microsoft"></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Catégorie</label><select id="f-type" title="Catégorie"><option value="phishing">Phishing</option><option value="romance">Romance Scam</option><option value="investissement">Investissement</option><option value="crypto">Crypto Fraud</option><option value="lottery">Loterie</option><option value="tech">Faux Support</option><option value="emploi">Emploi Fictif</option><option value="assurance">Fraude Bancaire</option></select></div>
+        <div class="form-row"><label>Sévérité</label><select id="f-severity" title="Sévérité"><option value="critique">Critique</option><option value="eleve">Élevé</option><option value="moyen">Moyen</option><option value="faible">Faible</option></select></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-row"><label>Plateforme / Canal</label><input type="text" id="f-platform" placeholder="Ex: SMS, Email, WhatsApp"></div>
+        <div class="form-row"><label>Montant moyen volé (€)</label><input type="number" id="f-amount" placeholder="Ex: 2500"></div>
+      </div>
+      <div class="form-row"><label>Mode opératoire</label><textarea id="f-desc" placeholder="Fonctionnement, signes d'alerte, cibles..."></textarea></div>
+      <div class="form-row"><label>Pays / Région d'origine</label><input type="text" id="f-origin" placeholder="Ex: International, Afrique de l'Ouest..."></div>
+      <button type="button" class="submit-btn" onclick="addScam()">ENREGISTRER LE SIGNALEMENT</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="detail-title">// Détail</div>
+      <button type="button" class="modal-close" onclick="closeModals()">×</button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+</body>
+</html>
