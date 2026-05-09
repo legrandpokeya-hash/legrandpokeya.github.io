@@ -27,7 +27,6 @@
   <div class="header-right">
     <div class="live-dot-wrap"><div class="live-dot"></div> EN DIRECT</div>
     <div class="ai-status"><div class="dot"></div> IA ACTIVE</div>
-    <button type="button" class="key-btn key-missing" id="key-indicator" onclick="openSettings()">🔑 CLÉ API</button>
   </div>
 </header>
 
@@ -212,23 +211,6 @@ Sélectionne une région et un type d'arnaque, puis clique sur LANCER LE SCAN IA
 
 </main>
 
-<!-- SETTINGS MODAL -->
-<div class="modal-overlay" id="settings-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">// Configuration API</div>
-      <button type="button" class="modal-close" onclick="closeSettings()">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <label>Clé API OpenAI</label>
-        <input type="password" id="api-key-input" placeholder="sk-...">
-      </div>
-      <p class="api-key-hint">La clé est stockée localement dans votre navigateur. Obtenez-la sur platform.openai.com/api-keys</p>
-      <button type="button" class="submit-btn" onclick="saveApiKeyFromInput()">ENREGISTRER LA CLÉ</button>
-    </div>
-  </div>
-</div>
 
 <!-- ADD MODAL -->
 <div class="modal-overlay" id="add-modal">

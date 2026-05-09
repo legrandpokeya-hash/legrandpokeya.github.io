@@ -77,42 +77,10 @@ const SEED_DATA = [
 ];
 
 const MODEL = 'gpt-4o';
+const PROXY_URL = 'https://scamintel-proxy.legrandpokeya.workers.dev';
 
 // STATE
 let currentFilter = 'all', currentSearch = '', selectedRegion = 'Monde entier', selectedProtectType = null;
-
-// ══ API KEY ══
-function getApiKey() {
-  return localStorage.getItem('scamintel_api_key') || '';
-}
-function saveApiKey(key) {
-  localStorage.setItem('scamintel_api_key', key.trim());
-  updateKeyIndicator();
-}
-function saveApiKeyFromInput() {
-  const key = document.getElementById('api-key-input').value.trim();
-  if (!key) return;
-  saveApiKey(key);
-  closeSettings();
-}
-function openSettings() {
-  const existing = getApiKey();
-  if (existing) document.getElementById('api-key-input').value = existing;
-  document.getElementById('settings-modal').classList.add('open');
-}
-function closeSettings() {
-  document.getElementById('settings-modal').classList.remove('open');
-}
-function updateKeyIndicator() {
-  const btn = document.getElementById('key-indicator');
-  const hasKey = !!getApiKey();
-  btn.classList.toggle('key-set', hasKey);
-  btn.classList.toggle('key-missing', !hasKey);
-}
-function requireApiKey() {
-  if (!getApiKey()) { openSettings(); return false; }
-  return true;
-}
 
 // ══ CORE HELPERS ══
 function getDB() {
@@ -195,7 +163,6 @@ function selectRegion(btn, region) {
 }
 
 async function launchScan() {
-  if (!requireApiKey()) return;
   const type=document.getElementById('scan-type').value;
   const period=document.getElementById('scan-period').value;
   const btn=document.getElementById('scan-btn');
@@ -234,12 +201,9 @@ La menace la plus urgente et spécifique du moment dans cette région.
 Sois direct, opérationnel et factuel. Donne des détails concrets.`;
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(PROXY_URL, {
       method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${getApiKey()}`
-      },
+      headers:{"Content-Type":"application/json"},
       body:JSON.stringify({ model:MODEL, max_tokens:4000, messages:[{role:"user",content:prompt}] })
     });
     const data=await response.json();
@@ -312,7 +276,6 @@ function selectType(key) {
 }
 
 async function generateAIProtect(key) {
-  if (!requireApiKey()) return;
   const t = SCAM_TYPES_PROTECT.find(x => x.key === key);
   const label = t?.label || key;
   const btn=document.getElementById('ai-protect-btn');
@@ -343,12 +306,9 @@ Que faire exactement si tu réalises que tu es victime en ce moment ?
 Sois très concret et pratique. Évite les généralités.`;
 
   try {
-    const response=await fetch("https://api.openai.com/v1/chat/completions",{
+    const response=await fetch(PROXY_URL,{
       method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${getApiKey()}`
-      },
+      headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:MODEL,max_tokens:4000,messages:[{role:"user",content:prompt}]})
     });
     const data=await response.json();
@@ -405,7 +365,6 @@ function openDetail(id) {
 }
 
 async function generateModalProtect(id) {
-  if (!requireApiKey()) return;
   const s=getDB().find(x=>x.id===id); if(!s) return;
   const btn=document.getElementById('modal-protect-btn');
   const out=document.getElementById('modal-protect-out');
@@ -424,12 +383,9 @@ Donne 5 conseils TRÈS CONCRETS et SPÉCIFIQUES pour éviter CETTE arnaque préc
 Chaque conseil doit être actionnable immédiatement. Maximum 3 lignes par conseil. Format numéroté.`;
 
   try {
-    const response=await fetch("https://api.openai.com/v1/chat/completions",{
+    const response=await fetch(PROXY_URL,{
       method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${getApiKey()}`
-      },
+      headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:MODEL,max_tokens:4000,messages:[{role:"user",content:prompt}]})
     });
     const data=await response.json();
@@ -608,7 +564,6 @@ function selectRecoveryType(key) {
 }
 
 async function generateAIRecovery(key) {
-  if (!requireApiKey()) return;
   const t = RECOVERY_TYPES.find(x => x.key === key);
   const label = t?.label || key;
   const btn = document.getElementById('recovery-ai-btn');
@@ -641,9 +596,9 @@ Liste précise des éléments à sauvegarder immédiatement pour maximiser les c
 Sois direct, honnête sur les chances réelles, et donne des informations pratiques immédiatement utilisables en France.`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(PROXY_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getApiKey()}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: MODEL, max_tokens: 4000, messages: [{ role: 'user', content: prompt }] })
     });
     const data = await response.json();
@@ -693,7 +648,6 @@ function selectDefenseType(key) {
 }
 
 async function generateAIDefense(key) {
-  if (!requireApiKey()) return;
   const t = DEFENSE_TYPES.find(x => x.key === key);
   const label = t?.label || key;
   const btn = document.getElementById('defense-ai-btn');
@@ -724,9 +678,9 @@ Décris comment un attaquant exploiterait une mauvaise configuration dans ce dom
 Niveau : intermédiaire à avancé. Donne des commandes, des configurations, des noms d'outils précis.`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(PROXY_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getApiKey()}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: MODEL, max_tokens: 4000, messages: [{ role: 'user', content: prompt }] })
     });
     const data = await response.json();
@@ -748,5 +702,3 @@ renderAll();
 renderTypeList();
 renderRecoveryList();
 renderDefenseList();
-updateKeyIndicator();
-if (!getApiKey()) openSettings();
