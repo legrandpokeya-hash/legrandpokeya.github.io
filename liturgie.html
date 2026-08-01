@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumen Verbi — Analyseur des textes liturgiques &amp; homélies</title>
+<meta name="description" content="Analyse des lectures liturgiques catholiques du jour selon les cycles liturgiques : message central, interprétations spirituelles et homélie complète.">
+<meta name="theme-color" content="#5b3a8c">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --violet:#5b3a8c; --violet-dark:#3d2560; --or:#c9a227; --or-clair:#e8cf7a;
+  --parchemin:#faf6ee; --parchemin-2:#f3ecdd; --encre:#2b2118; --encre-2:#5a4a38;
+  --rouge:#a5322b; --vert:#3e6b46; --blanc-lit:#f5f0e4; --rose-lit:#c98a9e;
+  --card:#fffdf8; --bord:#e2d7bf; --ombre:0 2px 14px rgba(60,40,10,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Sans 3',sans-serif;background:var(--parchemin);color:var(--encre);line-height:1.65;min-height:100vh}
+h1,h2,h3,.serif{font-family:'Cormorant Garamond',serif}
+
+/* ── En-tête ── */
+header{background:linear-gradient(135deg,var(--violet-dark) 0%,var(--violet) 60%,#7b53b3 100%);color:#fff;padding:26px 20px 22px;text-align:center;position:relative;overflow:hidden}
+header::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% -20%,rgba(232,207,122,.25),transparent 60%);pointer-events:none}
+.h-cross{font-size:1.6rem;color:var(--or-clair);letter-spacing:.4em;margin-bottom:4px}
+header h1{font-size:clamp(1.7rem,4.5vw,2.5rem);font-weight:700;letter-spacing:.02em}
+header h1 span{color:var(--or-clair)}
+.h-sub{font-size:.95rem;opacity:.9;font-weight:300;max-width:640px;margin:6px auto 0}
+main{max-width:1040px;margin:0 auto;padding:22px 16px 70px}
+
+/* ── Barre de contrôle ── */
+.barre{background:var(--card);border:1px solid var(--bord);border-radius:12px;box-shadow:var(--ombre);padding:16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-top:-34px;position:relative;z-index:2}
+.champ{display:flex;flex-direction:column;gap:4px;flex:1;min-width:150px}
+.champ label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--encre-2);font-weight:700}
+.champ input,.champ select{padding:9px 10px;border:1px solid var(--bord);border-radius:8px;background:#fff;font:inherit;font-size:.95rem;color:var(--encre)}
+.champ input:focus,.champ select:focus{outline:2px solid var(--violet);outline-offset:1px}
+button{font:inherit;cursor:pointer;border:none;border-radius:8px;transition:filter .15s, transform .05s}
+button:active{transform:translateY(1px)}
+.btn-p{background:var(--violet);color:#fff;font-weight:700;padding:10px 20px;letter-spacing:.02em}
+.btn-p:hover{filter:brightness(1.12)}
+.btn-or{background:linear-gradient(135deg,#b8901c,var(--or) 50%,#dcb945);color:#fff;font-weight:700;padding:12px 26px;font-size:1.02rem;letter-spacing:.02em;box-shadow:0 3px 10px rgba(180,140,30,.35)}
+.btn-or:hover{filter:brightness(1.07)}
+.btn-s{background:transparent;border:1px solid var(--bord);color:var(--encre-2);padding:9px 14px;font-weight:600}
+.btn-s:hover{background:var(--parchemin-2)}
+button:disabled{opacity:.5;cursor:not-allowed;filter:none}
+
+/* ── Carte info liturgique ── */
+.info-lit{margin-top:18px;background:var(--card);border:1px solid var(--bord);border-radius:12px;box-shadow:var(--ombre);overflow:hidden;display:none}
+.info-lit.on{display:block}
+.info-bande{height:7px;background:var(--violet)}
+.info-corps{padding:16px 18px;display:flex;flex-wrap:wrap;gap:8px 26px;align-items:baseline}
+.jour-nom{font-family:'Cormorant Garamond',serif;font-size:1.45rem;font-weight:700;width:100%}
+.info-item{font-size:.9rem;color:var(--encre-2)}
+.info-item b{color:var(--encre)}
+.pastille{display:inline-block;width:.75em;height:.75em;border-radius:50%;border:1px solid rgba(0,0,0,.25);vertical-align:baseline;margin-right:.3em}
+
+/* ── Lectures ── */
+.sec-titre{display:flex;align-items:center;gap:12px;margin:30px 0 14px}
+.sec-titre h2{font-size:1.5rem;font-weight:700;color:var(--violet-dark)}
+.sec-titre::before,.sec-titre::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--or));}
+.sec-titre::after{background:linear-gradient(90deg,var(--or),transparent)}
+.lectures{display:grid;gap:14px}
+.lecture{background:var(--card);border:1px solid var(--bord);border-radius:12px;box-shadow:var(--ombre);overflow:hidden}
+.lecture summary{list-style:none;cursor:pointer;padding:13px 18px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;background:linear-gradient(180deg,#fff, #fdf9ef)}
+.lecture summary::-webkit-details-marker{display:none}
+.lecture summary:hover{background:var(--parchemin-2)}
+.lec-type{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#fff;background:var(--violet);padding:2px 9px;border-radius:20px}
+.lec-type.evangile{background:var(--or);color:#3c2c00}
+.lec-ref{font-weight:700;color:var(--violet-dark)}
+.lec-titre{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.05rem;color:var(--encre-2);width:100%}
+.lec-contenu{padding:6px 20px 18px;border-top:1px dashed var(--bord);font-family:'Cormorant Garamond',serif;font-size:1.13rem;color:var(--encre)}
+.lec-contenu p{margin:.6em 0}
+.chevron{margin-left:auto;color:var(--or);transition:transform .2s}
+details[open] .chevron{transform:rotate(90deg)}
+
+/* ── Mode manuel ── */
+.manuel{display:none;margin-top:14px;background:var(--card);border:1px dashed var(--or);border-radius:12px;padding:16px}
+.manuel.on{display:block}
+.manuel textarea{width:100%;min-height:180px;margin-top:8px;padding:10px;border:1px solid var(--bord);border-radius:8px;font:inherit;font-size:.92rem;resize:vertical}
+
+/* ── Analyse ── */
+.zone-analyse{margin-top:34px;text-align:center}
+.resultat{display:none;margin-top:22px;text-align:left;background:var(--card);border:1px solid var(--bord);border-radius:14px;box-shadow:var(--ombre);overflow:hidden}
+.resultat.on{display:block}
+.res-bande{height:7px;background:linear-gradient(90deg,var(--violet),var(--or))}
+.res-corps{padding:26px 30px 30px;font-family:'Cormorant Garamond',serif;font-size:1.16rem}
+.res-corps h2{font-size:1.55rem;color:var(--violet-dark);margin:1.3em 0 .45em;padding-bottom:.2em;border-bottom:2px solid var(--or-clair)}
+.res-corps h2:first-child{margin-top:0}
+.res-corps h3{font-size:1.25rem;color:var(--encre);margin:1em 0 .3em}
+.res-corps p{margin:.55em 0}
+.res-corps ul,.res-corps ol{margin:.5em 0 .5em 1.4em}
+.res-corps li{margin:.3em 0}
+.res-corps blockquote{border-left:3px solid var(--or);padding:.2em 0 .2em 1em;margin:.8em 0;font-style:italic;color:var(--encre-2)}
+.res-corps strong{color:var(--violet-dark)}
+.curseur{display:inline-block;width:.55em;height:1.1em;background:var(--or);vertical-align:text-bottom;animation:clign 1s steps(2) infinite}
+@keyframes clign{50%{opacity:0}}
+.res-actions{display:flex;gap:10px;flex-wrap:wrap;padding:0 30px 24px}
+.statut{margin-top:14px;font-size:.92rem;color:var(--encre-2);min-height:1.4em}
+.statut.err{color:var(--rouge);font-weight:600}
+
+/* ── Modale réglages ── */
+.voile{display:none;position:fixed;inset:0;background:rgba(30,20,50,.55);z-index:50;padding:20px;overflow:auto}
+.voile.on{display:flex;align-items:center;justify-content:center}
+.modale{background:var(--card);border-radius:14px;max-width:520px;width:100%;padding:26px;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.modale h3{font-size:1.4rem;color:var(--violet-dark);margin-bottom:10px}
+.modale p{font-size:.9rem;color:var(--encre-2);margin-bottom:12px}
+.modale input{width:100%;padding:10px;border:1px solid var(--bord);border-radius:8px;font:inherit;margin-bottom:14px}
+.note-secu{font-size:.8rem;background:var(--parchemin-2);border-left:3px solid var(--or);padding:8px 12px;border-radius:0 8px 8px 0;margin-bottom:14px}
+.modale .rang{display:flex;gap:10px;justify-content:flex-end}
+
+/* ── Pied de page ── */
+footer{text-align:center;padding:26px 16px;color:var(--encre-2);font-size:.85rem;border-top:1px solid var(--bord);margin-top:40px}
+footer a{color:var(--violet)}
+.spin{display:inline-block;width:1em;height:1em;border:2px solid var(--or);border-top-color:transparent;border-radius:50%;animation:rot .8s linear infinite;vertical-align:-.15em;margin-right:.4em}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+@media print{
+  header,.barre,.zone-analyse>button,.statut,.res-actions,footer,.manuel,#sec-lectures,.info-lit{display:none!important}
+  .resultat{border:none;box-shadow:none}
+  body{background:#fff}
+}
+@media (max-width:640px){
+  .res-corps{padding:20px 16px}
+  .res-actions{padding:0 16px 18px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-cross">✠</div>
+  <h1>Lumen <span>Verbi</span></h1>
+  <p class="h-sub">Analyseur des textes liturgiques catholiques — lectures du jour selon les cycles liturgiques, message central, interprétations spirituelles et homélie.</p>
+</header>
+
+<main>
+
+  <!-- Barre de contrôle -->
+  <div class="barre">
+    <div class="champ">
+      <label for="date">Date</label>
+      <input type="date" id="date">
+    </div>
+    <div class="champ">
+      <label for="zone">Calendrier (zone)</label>
+      <select id="zone">
+        <option value="romain">Romain (universel)</option>
+        <option value="afrique">Afrique</option>
+        <option value="france">France</option>
+        <option value="belgique">Belgique</option>
+        <option value="canada">Canada</option>
+        <option value="luxembourg">Luxembourg</option>
+        <option value="suisse">Suisse</option>
+      </select>
+    </div>
+    <button class="btn-p" id="btn-charger">📖 Charger les lectures</button>
+    <button class="btn-s" id="btn-reglages" title="Clé API pour la génération">⚙ Réglages IA</button>
+  </div>
+
+  <!-- Informations liturgiques -->
+  <div class="info-lit" id="info-lit">
+    <div class="info-bande" id="info-bande"></div>
+    <div class="info-corps" id="info-corps"></div>
+  </div>
+
+  <!-- Lectures -->
+  <section id="sec-lectures" style="display:none">
+    <div class="sec-titre"><h2>Lectures de la Messe</h2></div>
+    <div class="lectures" id="lectures"></div>
+  </section>
+
+  <!-- Mode manuel -->
+  <div class="manuel" id="manuel">
+    <b>Mode manuel</b> — si les lectures n'ont pas pu être chargées automatiquement, collez ici les textes du jour (références et contenus), puis lancez l'analyse.
+    <textarea id="texte-manuel" placeholder="Exemple :&#10;Première lecture : Jr 26, 11-16.24 — « ... »&#10;Psaume : Ps 68 — « ... »&#10;Évangile : Mt 14, 1-12 — « ... »"></textarea>
+  </div>
+
+  <!-- Analyse -->
+  <div class="zone-analyse">
+    <button class="btn-or" id="btn-analyser" disabled>✠ Analyser &amp; générer l'homélie</button>
+    <div class="statut" id="statut"></div>
+
+    <div class="resultat" id="resultat">
+      <div class="res-bande"></div>
+      <div class="res-corps" id="res-corps"></div>
+      <div class="res-actions">
+        <button class="btn-s" id="btn-copier">📋 Copier</button>
+        <button class="btn-s" id="btn-imprimer">🖨 Imprimer</button>
+        <button class="btn-s" id="btn-telecharger">💾 Télécharger (.md)</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Textes liturgiques : <a href="https://www.aelf.org" target="_blank" rel="noopener">AELF</a> (traduction officielle liturgique) ·
+  Analyse et homélie générées par l'IA Claude (Anthropic) — à relire et discerner avant tout usage pastoral.<br>
+  « <i>Ta parole est la lumière de mes pas, la lampe de ma route.</i> » — Ps 118, 105
+</footer>
+
+<!-- Modale réglages -->
+<div class="voile" id="voile">
+  <div class="modale">
+    <h3>⚙ Réglages de l'IA</h3>
+    <p>Pour générer l'analyse et l'homélie, l'application utilise l'API <b>Claude</b> d'Anthropic. Saisissez votre clé API (obtenue sur <a href="https://platform.claude.com" target="_blank" rel="noopener">platform.claude.com</a>).</p>
+    <input type="password" id="cle-api" placeholder="sk-ant-api03-..." autocomplete="off">
+    <div class="note-secu">🔒 Votre clé est conservée <b>uniquement dans ce navigateur</b> (localStorage) et envoyée directement à l'API d'Anthropic. Elle ne transite par aucun autre serveur. N'utilisez pas cette page sur un ordinateur partagé.</div>
+    <div class="rang">
+      <button class="btn-s" id="btn-effacer-cle">Effacer la clé</button>
+      <button class="btn-p" id="btn-sauver-cle">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ═══════════════════ Utilitaires ═══════════════════ */
+const $ = id => document.getElementById(id);
+const CLE_STORE = "lumenverbi_cle_api";
+const ZONE_STORE = "lumenverbi_zone";
+
+function echap(s){ return String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function sansScripts(html){
+  const t = document.createElement("template");
+  t.innerHTML = String(html??"");
+  t.content.querySelectorAll("script,style,iframe,object,embed,link").forEach(n=>n.remove());
+  t.content.querySelectorAll("*").forEach(n=>{
+    [...n.attributes].forEach(a=>{ if(/^on/i.test(a.name) || /^javascript:/i.test(a.value)) n.removeAttribute(a.name); });
+  });
+  return t.innerHTML;
+}
+function texteBrut(html){
+  const d = document.createElement("div");
+  d.innerHTML = sansScripts(html);
+  return d.textContent.replace(/\s+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+}
+
+/* ═══════════════════ Calculs liturgiques (repli local) ═══════════════════ */
+function datePaques(y){ // algorithme de Meeus (grégorien)
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),
+        g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,
+        l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+        mois=Math.floor((h+l-7*m+114)/31), jour=((h+l-7*m+114)%31)+1;
+  return Date.UTC(y,mois-1,jour);
+}
+function premierDimancheAvent(y){
+  const noel = Date.UTC(y,11,25);
+  const js = new Date(noel).getUTCDay(); // 0=dimanche
+  const dim4 = noel - (js===0?7:js)*864e5; // 4e dimanche de l'Avent
+  return dim4 - 21*864e5;
+}
+function cyclesLiturgiques(d){ // d = Date UTC minuit
+  const t = d.getTime(), y = d.getUTCFullYear();
+  const anneeLit = t >= premierDimancheAvent(y) ? y+1 : y;
+  const r = anneeLit % 3;
+  const dominical = r===0 ? "C" : (r===1 ? "A" : "B");
+  const ferial = anneeLit % 2 === 1 ? "I (années impaires)" : "II (années paires)";
+  return { anneeLit, dominical, ferial };
+}
+function tempsLiturgique(d){
+  const y = d.getUTCFullYear(), t = d.getTime();
+  const paques = datePaques(y);
+  const cendres = paques - 46*864e5;
+  const jeudiSaint = paques - 3*864e5;
+  const pentecote = paques + 49*864e5;
+  const avent = premierDimancheAvent(y);
+  const noel = Date.UTC(y,11,25);
+  // Épiphanie (dimanche entre le 2 et le 8 janvier) puis Baptême du Seigneur
+  const j1 = Date.UTC(y,0,1);
+  const jsJ1 = new Date(j1).getUTCDay();
+  const epiph = j1 + (((7 - jsJ1) % 7) || 7) * 864e5; // 1er dimanche après le 1er janvier
+  const dEpiph = new Date(epiph).getUTCDate();
+  const bapteme = (dEpiph>=7) ? epiph + 864e5 : epiph + 7*864e5;
+
+  if (t >= avent && t < noel)            return {nom:"Temps de l'Avent",        couleur:"violet"};
+  if (t >= noel || t <= bapteme)         return {nom:"Temps de Noël",           couleur:"blanc"};
+  if (t >= cendres && t < jeudiSaint)    return {nom:"Temps du Carême",         couleur:"violet"};
+  if (t >= jeudiSaint && t < paques)     return {nom:"Triduum pascal",          couleur:"rouge"};
+  if (t >= paques && t < pentecote)      return {nom:"Temps pascal",            couleur:"blanc"};
+  if (t === pentecote)                   return {nom:"Pentecôte",               couleur:"rouge"};
+  return {nom:"Temps ordinaire", couleur:"vert"};
+}
+const COULEURS = { vert:"#3e6b46", violet:"#5b3a8c", blanc:"#f5f0e4", rouge:"#a5322b", rose:"#c98a9e", noir:"#222" };
+function couleurCss(nom){ return COULEURS[String(nom||"").toLowerCase().trim()] || "#5b3a8c"; }
+
+/* ═══════════════════ Chargement AELF ═══════════════════ */
+const TYPES_LECTURES = {
+  lecture_1:"Première lecture", lecture_2:"Deuxième lecture", lecture_3:"Troisième lecture",
+  lecture_4:"Quatrième lecture", lecture_5:"Cinquième lecture", lecture_6:"Sixième lecture",
+  lecture_7:"Septième lecture", psaume:"Psaume", cantique:"Cantique", epitre:"Épître",
+  evangile:"Évangile", sequence:"Séquence"
+};
+let donneesJour = null;   // {info, lectures:[{type,libelle,ref,titre,contenu}]}
+let analyseMd = "";
+let enCours = false;
+
+async function fetchAELF(dateISO, zone){
+  const url = `https://api.aelf.org/v1/messes/${dateISO}/${zone}`;
+  try {
+    const r = await fetch(url, {headers:{Accept:"application/json"}});
+    if (r.ok) return await r.json();
+    throw new Error("HTTP "+r.status);
+  } catch(e1){
+    // Repli via proxy CORS public si l'appel direct échoue
+    const r2 = await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(url));
+    if (!r2.ok) throw new Error("AELF inaccessible ("+e1.message+")");
+    return await r2.json();
+  }
+}
+
+async function chargerLectures(){
+  const dateISO = $("date").value;
+  const zone = $("zone").value;
+  if (!dateISO) return;
+  localStorage.setItem(ZONE_STORE, zone);
+  const btn = $("btn-charger");
+  btn.disabled = true;
+  setStatut('<span class="spin"></span>Chargement des lectures du '+formatDateFr(dateISO)+"…");
+  $("manuel").classList.remove("on");
+
+  const d = new Date(dateISO+"T00:00:00Z");
+  const cycles = cyclesLiturgiques(d);
+  const temps = tempsLiturgique(d);
+
+  try {
+    const data = await fetchAELF(dateISO, zone);
+    const info = data.informations || {};
+    const messes = data.messes || [];
+    const lectures = [];
+    for (const messe of messes){
+      for (const lec of (messe.lectures||[])){
+        const type = String(lec.type||"").replace(/_[0-9]+_[0-9]+$/,"");
+        lectures.push({
+          type: lec.type,
+          libelle: TYPES_LECTURES[type] || TYPES_LECTURES[lec.type] || (lec.type||"Lecture"),
+          ref: lec.ref || "",
+          titre: lec.titre || "",
+          intro: lec.intro_lue || "",
+          contenu: lec.contenu || ""
+        });
+      }
+      if (lectures.length) break; // messe principale
+    }
+    if (!lectures.length) throw new Error("Aucune lecture trouvée pour cette date/zone.");
+
+    donneesJour = {
+      dateISO, zone,
+      info: {
+        jour: info.jour_liturgique_nom || info.fete || "",
+        fete: info.fete || "",
+        temps: info.temps_liturgique ? capital(info.temps_liturgique) : temps.nom,
+        couleur: info.couleur || temps.couleur,
+        annee: info.annee || cycles.dominical,
+        ferial: cycles.ferial,
+        anneeLit: cycles.anneeLit,
+        degre: info.degre || ""
+      },
+      lectures
+    };
+    afficherJour();
+    setStatut("Lectures chargées. Vous pouvez maintenant lancer l'analyse.");
+  } catch(e){
+    donneesJour = {
+      dateISO, zone, manuel:true,
+      info: { jour:"", fete:"", temps:temps.nom, couleur:temps.couleur, annee:cycles.dominical, ferial:cycles.ferial, anneeLit:cycles.anneeLit, degre:"" },
+      lectures: []
+    };
+    afficherJour();
+    $("manuel").classList.add("on");
+    setStatut("⚠ Impossible de charger les lectures depuis AELF ("+echap(e.message)+"). Utilisez le mode manuel ci-dessous, ou réessayez.", true);
+  } finally {
+    btn.disabled = false;
+    $("btn-analyser").disabled = false;
+  }
+}
+
+function capital(s){ s=String(s||""); return s.charAt(0).toUpperCase()+s.slice(1); }
+function formatDateFr(iso){
+  return new Date(iso+"T00:00:00Z").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric",timeZone:"UTC"});
+}
+
+function afficherJour(){
+  const dj = donneesJour, info = dj.info;
+  $("info-lit").classList.add("on");
+  $("info-bande").style.background = couleurCss(info.couleur);
+  const items = [];
+  items.push(`<div class="jour-nom">${echap(info.jour || info.fete || formatDateFr(dj.dateISO))}</div>`);
+  items.push(`<div class="info-item">📅 <b>${echap(capital(formatDateFr(dj.dateISO)))}</b></div>`);
+  items.push(`<div class="info-item">🕯 Temps : <b>${echap(info.temps)}</b></div>`);
+  items.push(`<div class="info-item"><span class="pastille" style="background:${couleurCss(info.couleur)}"></span>Couleur : <b>${echap(capital(info.couleur))}</b></div>`);
+  items.push(`<div class="info-item">✝ Cycle dominical : <b>Année ${echap(info.annee)}</b></div>`);
+  items.push(`<div class="info-item">📖 Cycle férial : <b>Année ${echap(info.ferial)}</b></div>`);
+  if (info.degre) items.push(`<div class="info-item">⭐ <b>${echap(capital(info.degre))}</b></div>`);
+  $("info-corps").innerHTML = items.join("");
+
+  const cont = $("lectures");
+  cont.innerHTML = "";
+  if (dj.lectures.length){
+    $("sec-lectures").style.display = "";
+    dj.lectures.forEach((l,i)=>{
+      const det = document.createElement("details");
+      det.className = "lecture";
+      if (i===0) det.open = true;
+      const estEvangile = /evangile/i.test(l.type);
+      det.innerHTML =
+        `<summary>
+           <span class="lec-type${estEvangile?" evangile":""}">${echap(l.libelle)}</span>
+           <span class="lec-ref">${echap(l.ref)}</span>
+           <span class="chevron">▸</span>
+           ${l.titre?`<span class="lec-titre">« ${echap(l.titre)} »</span>`:""}
+         </summary>
+         <div class="lec-contenu">${sansScripts(l.contenu)}</div>`;
+      cont.appendChild(det);
+    });
+  } else {
+    $("sec-lectures").style.display = "none";
+  }
+}
+
+/* ═══════════════════ Analyse par l'IA (API Claude) ═══════════════════ */
+const PROMPT_SYSTEME = `Tu es un théologien catholique, bibliste et homilète expérimenté, fidèle à l'Écriture, à la Tradition et au Magistère de l'Église catholique. Tu écris en français, dans un style à la fois profond, clair et accessible aux fidèles.
+
+À partir des lectures liturgiques du jour qui te sont fournies (avec leurs informations de cycle liturgique), tu produis TOUJOURS une réponse en Markdown structurée EXACTEMENT ainsi :
+
+## Message central
+Un ou deux paragraphes qui dégagent le fil conducteur unissant les lectures du jour (lecture(s), psaume, évangile), en tenant compte du temps liturgique et de la fête éventuelle. Cite brièvement les passages clés (avec références).
+
+## Interprétations pour la vie spirituelle et quotidienne
+De 4 à 6 points concrets (liste), chacun avec un titre en gras, reliant les textes à la vie spirituelle (prière, conversion, sacrements) et à la vie quotidienne (famille, travail, épreuves, charité, société). Sois concret et incarné, sans moralisme.
+
+## Homélie
+Une homélie complète, en bonne et due forme, de 700 à 900 mots, prête à être proclamée :
+- une accroche qui rejoint l'assemblée (expérience humaine, question, image) ;
+- un développement en 2 ou 3 mouvements, ancré dans les lectures citées explicitement, éclairé si pertinent par la Tradition (Pères de l'Église, saints, Catéchisme) ;
+- des applications concrètes pour les fidèles d'aujourd'hui ;
+- une conclusion brève avec un envoi et une ouverture vers l'Eucharistie ;
+- terminer par « Amen. »
+
+Règles : fidélité doctrinale ; ton pastoral, jamais polémique ; pas de longues digressions exégétiques techniques ; tutoiement collectif « frères et sœurs » ; ne jamais inventer de citation biblique — cite seulement ce qui est fourni ou des textes très connus avec leur référence exacte.`;
+
+function construirePromptUtilisateur(){
+  const dj = donneesJour, info = dj.info;
+  let p = `Voici les données liturgiques du jour.\n\n`;
+  p += `Date : ${formatDateFr(dj.dateISO)}\n`;
+  if (info.jour) p += `Jour liturgique : ${info.jour}\n`;
+  if (info.fete && info.fete !== info.jour) p += `Fête : ${info.fete}\n`;
+  p += `Temps liturgique : ${info.temps}\n`;
+  p += `Couleur liturgique : ${info.couleur}\n`;
+  p += `Cycle dominical : Année ${info.annee} — Cycle férial : Année ${info.ferial}\n`;
+  if (info.degre) p += `Degré de célébration : ${info.degre}\n`;
+  p += `\n=== LECTURES ===\n\n`;
+  if (dj.lectures.length){
+    for (const l of dj.lectures){
+      p += `--- ${l.libelle}${l.ref ? " ("+l.ref+")" : ""} ---\n`;
+      if (l.titre) p += `Titre : ${l.titre}\n`;
+      p += texteBrut(l.contenu) + "\n\n";
+    }
+  } else {
+    p += ($("texte-manuel").value.trim() || "(Aucun texte fourni)") + "\n";
+  }
+  p += `\nProduis maintenant l'analyse complète (Message central, Interprétations, Homélie) selon le format demandé.`;
+  return p;
+}
+
+async function analyser(){
+  if (enCours) return;
+  if (!donneesJour){ setStatut("Chargez d'abord les lectures d'une date.", true); return; }
+  if (!donneesJour.lectures.length && !$("texte-manuel").value.trim()){
+    setStatut("Aucune lecture disponible : collez les textes dans le mode manuel.", true);
+    $("manuel").classList.add("on");
+    return;
+  }
+  const cle = localStorage.getItem(CLE_STORE);
+  if (!cle){ ouvrirReglages("Une clé API Claude est nécessaire pour générer l'analyse."); return; }
+
+  enCours = true;
+  analyseMd = "";
+  const btn = $("btn-analyser");
+  btn.disabled = true;
+  $("resultat").classList.add("on");
+  $("res-corps").innerHTML = '<span class="curseur"></span>';
+  setStatut('<span class="spin"></span>Méditation en cours… l\'analyse et l\'homélie s\'écrivent sous vos yeux.');
+
+  try {
+    const rep = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": cle,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: "claude-opus-5",
+        max_tokens: 16000,
+        stream: true,
+        system: [{ type:"text", text: PROMPT_SYSTEME, cache_control:{type:"ephemeral"} }],
+        messages: [{ role:"user", content: construirePromptUtilisateur() }]
+      })
+    });
+
+    if (!rep.ok){
+      let msg = "Erreur API ("+rep.status+")";
+      try { const j = await rep.json(); if (j.error?.message) msg += " : "+j.error.message; } catch(_){}
+      if (rep.status===401) msg = "Clé API invalide ou révoquée (401). Vérifiez vos réglages.";
+      if (rep.status===429) msg = "Limite de requêtes atteinte (429). Patientez un instant puis réessayez.";
+      throw new Error(msg);
+    }
+
+    // Lecture du flux SSE
+    const lecteur = rep.body.getReader();
+    const dec = new TextDecoder();
+    let tampon = "", stopReason = null;
+    while (true){
+      const {done, value} = await lecteur.read();
+      if (done) break;
+      tampon += dec.decode(value, {stream:true});
+      const lignes = tampon.split("\n");
+      tampon = lignes.pop();
+      for (const ligne of lignes){
+        if (!ligne.startsWith("data:")) continue;
+        const brut = ligne.slice(5).trim();
+        if (!brut || brut === "[DONE]") continue;
+        let ev; try { ev = JSON.parse(brut); } catch(_){ continue; }
+        if (ev.type === "content_block_delta" && ev.delta?.type === "text_delta"){
+          analyseMd += ev.delta.text;
+          rendreResultat(true);
+        } else if (ev.type === "message_delta" && ev.delta?.stop_reason){
+          stopReason = ev.delta.stop_reason;
+        } else if (ev.type === "error"){
+          throw new Error(ev.error?.message || "Erreur du flux");
+        }
+      }
+    }
+
+    if (stopReason === "refusal") throw new Error("La requête a été déclinée par les garde-fous du modèle. Réessayez ou reformulez.");
+    if (!analyseMd.trim()) throw new Error("Réponse vide du modèle.");
+    rendreResultat(false);
+    setStatut("✓ Analyse et homélie générées." + (stopReason==="max_tokens" ? " (Réponse tronquée : limite de longueur atteinte.)" : ""));
+  } catch(e){
+    if (!analyseMd.trim()) $("resultat").classList.remove("on");
+    else rendreResultat(false);
+    setStatut("⚠ " + echap(e.message), true);
+  } finally {
+    enCours = false;
+    btn.disabled = false;
+  }
+}
+
+/* ── Rendu Markdown minimal ── */
+function mdVersHtml(md){
+  const lignes = String(md).split("\n");
+  let html = "", enListe = null, enCitation = false;
+  const fermer = () => {
+    if (enListe){ html += `</${enListe}>`; enListe = null; }
+    if (enCitation){ html += "</blockquote>"; enCitation = false; }
+  };
+  const inline = s => echap(s)
+    .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+    .replace(/(^|[\s(«])\*(?!\s)([^*]+?)\*(?=[\s.,;:!?)»]|$)/g,"$1<em>$2</em>");
+  for (const l of lignes){
+    const t = l.trim();
+    if (/^###\s+/.test(t)){ fermer(); html += "<h3>"+inline(t.replace(/^###\s+/,""))+"</h3>"; }
+    else if (/^##\s+/.test(t)){ fermer(); html += "<h2>"+inline(t.replace(/^##\s+/,""))+"</h2>"; }
+    else if (/^#\s+/.test(t)){ fermer(); html += "<h2>"+inline(t.replace(/^#\s+/,""))+"</h2>"; }
+    else if (/^[-*•]\s+/.test(t)){
+      if (enListe!=="ul"){ fermer(); html += "<ul>"; enListe="ul"; }
+      html += "<li>"+inline(t.replace(/^[-*•]\s+/,""))+"</li>";
+    }
+    else if (/^\d+[.)]\s+/.test(t)){
+      if (enListe!=="ol"){ fermer(); html += "<ol>"; enListe="ol"; }
+      html += "<li>"+inline(t.replace(/^\d+[.)]\s+/,""))+"</li>";
+    }
+    else if (/^>\s?/.test(t)){
+      if (!enCitation){ fermer(); html += "<blockquote>"; enCitation = true; }
+      html += "<p>"+inline(t.replace(/^>\s?/,""))+"</p>";
+    }
+    else if (t===""){ fermer(); }
+    else { fermer(); html += "<p>"+inline(t)+"</p>"; }
+  }
+  fermer();
+  return html;
+}
+function rendreResultat(curseur){
+  $("res-corps").innerHTML = mdVersHtml(analyseMd) + (curseur ? '<span class="curseur"></span>' : "");
+}
+
+/* ═══════════════════ Actions résultat ═══════════════════ */
+function copierResultat(){
+  navigator.clipboard.writeText(analyseMd).then(
+    ()=> setStatut("✓ Texte copié dans le presse-papiers."),
+    ()=> setStatut("Impossible de copier automatiquement.", true)
+  );
+}
+function telechargerResultat(){
+  const dj = donneesJour || {dateISO:"analyse"};
+  const entete = `# Analyse liturgique — ${formatDateFr(dj.dateISO||"")}\n\n`;
+  const blob = new Blob([entete + analyseMd], {type:"text/markdown;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `homelie-${dj.dateISO||"jour"}.md`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ═══════════════════ Réglages ═══════════════════ */
+function ouvrirReglages(message){
+  $("cle-api").value = localStorage.getItem(CLE_STORE) || "";
+  $("voile").classList.add("on");
+  if (message) setStatut(message, true);
+}
+function fermerReglages(){ $("voile").classList.remove("on"); }
+function sauverCle(){
+  const v = $("cle-api").value.trim();
+  if (v) localStorage.setItem(CLE_STORE, v); else localStorage.removeItem(CLE_STORE);
+  fermerReglages();
+  setStatut(v ? "✓ Clé API enregistrée dans ce navigateur." : "Clé API effacée.");
+}
+
+function setStatut(html, err){
+  const s = $("statut");
+  s.innerHTML = html || "";
+  s.classList.toggle("err", !!err);
+}
+
+/* ═══════════════════ Initialisation ═══════════════════ */
+(function init(){
+  const auj = new Date();
+  $("date").value = auj.getFullYear()+"-"+String(auj.getMonth()+1).padStart(2,"0")+"-"+String(auj.getDate()).padStart(2,"0");
+  $("zone").value = localStorage.getItem(ZONE_STORE) || "romain";
+
+  $("btn-charger").addEventListener("click", chargerLectures);
+  $("btn-analyser").addEventListener("click", analyser);
+  $("btn-reglages").addEventListener("click", ()=>ouvrirReglages());
+  $("btn-sauver-cle").addEventListener("click", sauverCle);
+  $("btn-effacer-cle").addEventListener("click", ()=>{ $("cle-api").value=""; sauverCle(); });
+  $("voile").addEventListener("click", e=>{ if(e.target === $("voile")) fermerReglages(); });
+  $("btn-copier").addEventListener("click", copierResultat);
+  $("btn-imprimer").addEventListener("click", ()=>window.print());
+  $("btn-telecharger").addEventListener("click", telechargerResultat);
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape") fermerReglages(); });
+
+  // Charger automatiquement les lectures du jour
+  chargerLectures();
+})();
+</script>
+</body>
+</html>
