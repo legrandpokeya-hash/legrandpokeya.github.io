@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon Bilan — Journal quotidien du semestre</title>
+<meta name="description" content="Raconte ta journée, l'application l'organise en un bilan quotidien structuré : cours suivis, notions apprises, tâches à faire, difficultés et objectifs.">
+<meta name="theme-color" content="#4f46e5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mon Bilan">
+<link rel="manifest" href="/journal.webmanifest">
+<link rel="apple-touch-icon" href="/icons/journal-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --indigo:#4f46e5; --indigo-d:#3f37c9; --indigo-l:#eef0ff; --or:#c9a227;
+  --papier:#f6f5fb; --carte:#ffffff; --encre:#1d1b31; --encre-2:#5d5a78;
+  --bord:#e5e3f1; --vert:#2f7d55; --rouge:#c0392b; --ambre:#b06f10;
+  --ombre:0 1px 3px rgba(29,27,49,.06),0 8px 24px rgba(29,27,49,.06);
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --indigo:#8b83ff; --indigo-d:#6f66f0; --indigo-l:#232043; --or:#d9b64a;
+    --papier:#111020; --carte:#1a1930; --encre:#eceafc; --encre-2:#a5a1c6;
+    --bord:#2c2a48; --vert:#5cc98d; --rouge:#ff8a7a; --ambre:#e0b25f;
+    --ombre:0 1px 3px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--papier);color:var(--encre);line-height:1.6;-webkit-text-size-adjust:100%}
+h1,h2,h3,.serif{font-family:'Fraunces','Georgia',serif;letter-spacing:-.01em}
+button{font:inherit;cursor:pointer;border:none;border-radius:10px;transition:filter .15s,background .15s,transform .05s}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{font:inherit;color:var(--encre);background:var(--carte);border:1px solid var(--bord);border-radius:10px;padding:10px 12px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--indigo);outline-offset:1px}
+a{color:var(--indigo)}
+
+/* En-tête */
+header{background:linear-gradient(135deg,var(--indigo-d),var(--indigo) 55%,#8b5cf6);color:#fff;padding:20px 16px 26px;text-align:center}
+header h1{font-size:clamp(1.5rem,4.6vw,2.1rem);font-weight:700}
+header h1 span{color:#ffe9a8}
+.h-sub{font-size:.9rem;opacity:.92;font-weight:300;margin-top:2px}
+.h-jour{display:inline-block;margin-top:10px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:4px 14px;font-size:.82rem;font-weight:600}
+
+/* Onglets */
+.onglets{display:flex;gap:6px;max-width:980px;margin:-16px auto 0;padding:0 12px;position:relative;z-index:3}
+.onglet{flex:1;background:var(--carte);border:1px solid var(--bord);box-shadow:var(--ombre);color:var(--encre-2);font-weight:600;font-size:.88rem;padding:11px 6px}
+.onglet.actif{background:var(--indigo);border-color:var(--indigo);color:#fff}
+
+main{max-width:980px;margin:0 auto;padding:20px 12px 90px}
+.vue{display:none}
+.vue.actif{display:block}
+
+.carte{background:var(--carte);border:1px solid var(--bord);border-radius:var(--r);box-shadow:var(--ombre);padding:16px;margin-bottom:16px}
+.carte-titre{font-family:'Fraunces',serif;font-size:1.12rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.carte-titre .compteur{font-family:'Inter',sans-serif;font-size:.74rem;font-weight:600;color:var(--encre-2);background:var(--papier);border:1px solid var(--bord);border-radius:999px;padding:1px 9px}
+
+.ligne{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.champ{display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px}
+.champ label{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--encre-2);font-weight:700}
+.aide{font-size:.8rem;color:var(--encre-2)}
+
+/* Humeur */
+.humeurs{display:flex;gap:6px}
+.humeur{background:var(--papier);border:1px solid var(--bord);border-radius:10px;font-size:1.25rem;line-height:1;padding:7px 9px;filter:grayscale(.7);opacity:.75}
+.humeur.on{filter:none;opacity:1;border-color:var(--indigo);background:var(--indigo-l);transform:translateY(-2px)}
+
+/* Saisie */
+textarea#recit{width:100%;min-height:190px;resize:vertical;line-height:1.65;margin-top:12px}
+.barre-saisie{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.btn-p{background:var(--indigo);color:#fff;font-weight:700;padding:12px 20px}
+.btn-p:hover{filter:brightness(1.1)}
+.btn-s{background:var(--papier);border:1px solid var(--bord);color:var(--encre-2);font-weight:600;padding:10px 14px}
+.btn-s:hover{background:var(--indigo-l);color:var(--indigo)}
+.btn-micro.on{background:var(--rouge);color:#fff;border-color:var(--rouge);animation:pulse 1.3s infinite}
+@keyframes pulse{50%{filter:brightness(1.25)}}
+.compte{margin-left:auto;font-size:.78rem;color:var(--encre-2)}
+.astuce{margin-top:10px;font-size:.82rem;color:var(--encre-2);background:var(--indigo-l);border-left:3px solid var(--indigo);border-radius:0 8px 8px 0;padding:9px 12px}
+
+/* Bandeau d'état */
+.bandeau{display:none;margin-bottom:14px;border-radius:10px;padding:10px 13px;font-size:.86rem;font-weight:500}
+.bandeau.on{display:block}
+.bandeau.info{background:var(--indigo-l);color:var(--indigo);border:1px solid var(--indigo)}
+.bandeau.alerte{background:rgba(176,111,16,.12);color:var(--ambre);border:1px solid var(--ambre)}
+.bandeau.erreur{background:rgba(192,57,43,.1);color:var(--rouge);border:1px solid var(--rouge)}
+
+/* Bilan structuré */
+.bilan-titre{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;line-height:1.3}
+.bilan-date{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--encre-2);font-weight:700}
+.resume{margin:10px 0 4px;font-size:1rem;border-left:3px solid var(--or);padding-left:12px;color:var(--encre)}
+.sec{margin-top:18px}
+.sec h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--indigo);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.cours{border:1px solid var(--bord);border-radius:12px;padding:11px 13px;margin-bottom:9px;background:var(--papier)}
+.cours-tete{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+.cours-mat{font-weight:700}
+.etq{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--indigo-l);color:var(--indigo);border-radius:999px;padding:2px 9px}
+.etq.duree{background:transparent;border:1px solid var(--bord);color:var(--encre-2)}
+.cours-txt{font-size:.92rem;color:var(--encre-2);margin-top:5px}
+.notions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.notion{font-size:.78rem;background:var(--carte);border:1px solid var(--bord);border-radius:999px;padding:2px 10px}
+ul.liste{list-style:none;display:flex;flex-direction:column;gap:6px}
+ul.liste li{position:relative;padding-left:20px;font-size:.94rem}
+ul.liste li::before{content:"";position:absolute;left:5px;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--indigo)}
+ul.liste.pos li::before{background:var(--vert)}
+ul.liste.neg li::before{background:var(--ambre)}
+.tache{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--bord);border-radius:10px;padding:9px 11px;margin-bottom:7px;background:var(--papier)}
+.tache input{width:18px;height:18px;flex:none;margin-top:2px;accent-color:var(--indigo);padding:0}
+.tache.fait span.t-txt{text-decoration:line-through;opacity:.55}
+.t-txt{font-size:.94rem}
+.t-ech{display:block;font-size:.76rem;color:var(--ambre);font-weight:600}
+.mots{display:flex;flex-wrap:wrap;gap:6px}
+.mot{font-size:.76rem;background:var(--indigo-l);color:var(--indigo);border-radius:999px;padding:3px 10px;font-weight:600}
+.conseil{margin-top:18px;background:linear-gradient(135deg,var(--indigo-l),transparent);border:1px dashed var(--indigo);border-radius:12px;padding:12px 14px;font-size:.92rem}
+.conseil b{color:var(--indigo)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--bord)}
+.source{font-size:.74rem;color:var(--encre-2);margin-top:12px;font-style:italic}
+
+/* Journal */
+.entree{border:1px solid var(--bord);border-radius:12px;margin-bottom:10px;background:var(--carte);overflow:hidden}
+.entree-tete{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;cursor:pointer}
+.e-jour{flex:none;width:52px;text-align:center;background:var(--indigo-l);color:var(--indigo);border-radius:10px;padding:5px 0}
+.e-jour b{display:block;font-size:1.15rem;line-height:1.1}
+.e-jour small{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.e-corps{flex:1;min-width:0}
+.e-titre{font-weight:600}
+.e-res{font-size:.86rem;color:var(--encre-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.e-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.e-detail{display:none;padding:0 14px 14px;border-top:1px solid var(--bord)}
+.entree.ouvert .e-detail{display:block;padding-top:12px}
+.vide{text-align:center;color:var(--encre-2);padding:34px 12px;font-size:.94rem}
+
+/* Bilan / stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat{background:var(--papier);border:1px solid var(--bord);border-radius:12px;padding:12px}
+.stat b{display:block;font-family:'Fraunces',serif;font-size:1.7rem;line-height:1.15}
+.stat small{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--encre-2);font-weight:700}
+.barres{display:flex;flex-direction:column;gap:9px}
+.barre-l{display:flex;align-items:center;gap:10px;font-size:.88rem}
+.barre-l .nom{width:38%;min-width:96px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barre-piste{flex:1;background:var(--papier);border-radius:999px;height:12px;overflow:hidden;border:1px solid var(--bord)}
+.barre-fill{height:100%;background:linear-gradient(90deg,var(--indigo),#8b5cf6);border-radius:999px}
+.barre-l .val{font-size:.78rem;color:var(--encre-2);font-weight:700;width:42px;text-align:right}
+
+@media (max-width:560px){
+  .onglet{font-size:.78rem;padding:10px 4px}
+  .stat b{font-size:1.45rem}
+}
+@media print{
+  header,.onglets,.actions,.barre-saisie,.astuce,.bandeau,#vue-saisie .carte:not(#carte-bilan){display:none!important}
+  body{background:#fff}
+  .carte{box-shadow:none;border:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mon <span>Bilan</span></h1>
+  <div class="h-sub">Raconte ta journée — elle devient un journal organisé.</div>
+  <div class="h-jour" id="h-jour">Jour 1 du semestre</div>
+</header>
+
+<div class="onglets">
+  <button type="button" class="onglet actif" data-vue="saisie">✍️ Aujourd'hui</button>
+  <button type="button" class="onglet" data-vue="journal">📔 Journal</button>
+  <button type="button" class="onglet" data-vue="bilan">📊 Bilan</button>
+</div>
+
+<main>
+
+<!-- ════════ VUE SAISIE ════════ -->
+<section class="vue actif" id="vue-saisie">
+
+  <div class="carte">
+    <div class="ligne">
+      <div class="champ" style="max-width:200px">
+        <label for="date-jour">Date du bilan</label>
+        <input type="date" id="date-jour">
+      </div>
+      <div class="champ" style="max-width:150px">
+        <label for="heures">Heures de travail</label>
+        <input type="number" id="heures" min="0" max="24" step="0.5" placeholder="ex : 4.5">
+      </div>
+      <div class="champ" style="flex:0 0 auto">
+        <label>Humeur du jour</label>
+        <div class="humeurs" id="humeurs">
+          <button type="button" class="humeur" data-h="1" title="Journée très difficile">😫</button>
+          <button type="button" class="humeur" data-h="2" title="Journée difficile">😕</button>
+          <button type="button" class="humeur" data-h="3" title="Journée correcte">🙂</button>
+          <button type="button" class="humeur" data-h="4" title="Bonne journée">😃</button>
+          <button type="button" class="humeur" data-h="5" title="Excellente journée">🤩</button>
+        </div>
+      </div>
+    </div>
+
+    <textarea id="recit" placeholder="Raconte tout ce que tu as fait aujourd'hui, sans te soucier de l'ordre ni du style.&#10;&#10;Ex : « Ce matin cours magistral de droit constitutionnel pendant 2h, le prof a parlé de la séparation des pouvoirs et du contrôle de constitutionnalité. Après, TD d'anglais, j'ai eu du mal avec les prétérits. Je dois réviser le chapitre 2 pour vendredi et rendre la fiche de lecture lundi. Le soir j'ai révisé 1h. »"></textarea>
+
+    <div class="barre-saisie">
+      <button type="button" class="btn-p" id="btn-organiser">✨ Organiser ma journée</button>
+      <button type="button" class="btn-s btn-micro" id="btn-micro" hidden>🎤 Dicter</button>
+      <button type="button" class="btn-s" id="btn-vider">Effacer</button>
+      <span class="compte" id="compte">0 mot</span>
+    </div>
+
+    <div class="astuce">
+      💡 Parle librement : cours suivis, notions comprises, devoirs à rendre, difficultés, réussites, ce que tu prévois demain. L'organisation se fait toute seule. Ton texte est enregistré au fur et à mesure.
+    </div>
+  </div>
+
+  <div class="bandeau" id="bandeau"></div>
+
+  <div class="carte" id="carte-bilan" hidden>
+    <div id="bilan-rendu"></div>
+  </div>
+
+  <div class="carte" id="carte-restes" hidden>
+    <div class="carte-titre">⏳ Tâches encore ouvertes <span class="compteur" id="restes-compte"></span></div>
+    <div id="restes"></div>
+  </div>
+
+</section>
+
+<!-- ════════ VUE JOURNAL ════════ -->
+<section class="vue" id="vue-journal">
+  <div class="carte">
+    <div class="carte-titre">📔 Mon journal <span class="compteur" id="journal-compte"></span></div>
+    <input type="search" id="recherche" placeholder="Rechercher une matière, une notion, un mot…" style="width:100%">
+  </div>
+  <div id="liste-journal"></div>
+</section>
+
+<!-- ════════ VUE BILAN ════════ -->
+<section class="vue" id="vue-bilan">
+  <div class="carte">
+    <div class="carte-titre">📊 Vue d'ensemble du semestre</div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="carte">
+    <div class="carte-titre">📚 Matières les plus travaillées</div>
+    <div class="barres" id="barres-matieres"><div class="vide">Aucune matière enregistrée pour l'instant.</div></div>
+  </div>
+
+  <div class="carte">
+    <div class="carte-titre">🗓 7 derniers jours</div>
+    <div class="barres" id="barres-semaine"></div>
+  </div>
+
+  <div class="carte">
+    <div class="carte-titre">⚙️ Réglages &amp; sauvegarde</div>
+    <div class="ligne">
+      <div class="champ" style="max-width:220px">
+        <label for="debut-semestre">Début du semestre</label>
+        <input type="date" id="debut-semestre">
+      </div>
+    </div>
+    <div class="actions" style="border:none;padding-top:14px">
+      <button type="button" class="btn-s" id="btn-export-md">⬇️ Exporter tout (Markdown)</button>
+      <button type="button" class="btn-s" id="btn-export-json">⬇️ Sauvegarde (JSON)</button>
+      <button type="button" class="btn-s" id="btn-import">⬆️ Restaurer une sauvegarde</button>
+      <input type="file" id="fichier-import" accept="application/json,.json" hidden>
+    </div>
+    <p class="aide" style="margin-top:10px">Tes bilans restent dans ce navigateur (aucun compte, aucun serveur). Pense à exporter une sauvegarde de temps en temps.</p>
+  </div>
+</section>
+
+</main>
+
+<script>
+"use strict";
+
+/* ════════ Constantes ════════ */
+const PROXY_URL = 'https://scamintel-proxy.legrandpokeya.workers.dev';
+const MODEL     = 'gpt-4o';
+const CLE_DB    = 'monbilan_entrees_v1';
+const CLE_CFG   = 'monbilan_config_v1';
+const HUMEURS   = { 1:'😫', 2:'😕', 3:'🙂', 4:'😃', 5:'🤩' };
+
+/* ════════ Utilitaires ════════ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function isoDuJour(d = new Date()) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function versDate(iso) { const [a,m,j] = iso.split('-').map(Number); return new Date(a, m-1, j); }
+function dateLongue(iso) {
+  return versDate(iso).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+function ecartJours(isoA, isoB) { return Math.round((versDate(isoB) - versDate(isoA)) / 86400000); }
+function nettoie(v) { return typeof v === 'string' ? v.trim() : ''; }
+function versListe(v) {
+  if (Array.isArray(v)) return v.map(nettoie).filter(Boolean);
+  const s = nettoie(v);
+  return s ? [s] : [];
+}
+
+/* ════════ Stockage ════════ */
+let db  = {};
+let cfg = { debutSemestre: isoDuJour() };
+
+function charger() {
+  try { db  = JSON.parse(localStorage.getItem(CLE_DB)  || '{}') || {}; } catch { db = {}; }
+  try { cfg = Object.assign(cfg, JSON.parse(localStorage.getItem(CLE_CFG) || '{}')); } catch {}
+}
+function sauver() {
+  try {
+    localStorage.setItem(CLE_DB, JSON.stringify(db));
+    localStorage.setItem(CLE_CFG, JSON.stringify(cfg));
+  } catch (e) { message('erreur', "Impossible d'enregistrer : la mémoire du navigateur est pleine ou bloquée."); }
+}
+function entree(date, creer) {
+  if (!db[date] && creer) db[date] = { date, raw:'', heures:null, humeur:null, organise:null, source:null, maj:null };
+  return db[date] || null;
+}
+function datesTriees() { return Object.keys(db).sort().reverse(); }
+
+let dateActive = isoDuJour();
+
+/* ════════ Bandeau d'état ════════ */
+let minuteurBandeau = null;
+function message(type, txt, duree) {
+  const b = $('bandeau');
+  b.className = 'bandeau on ' + type;
+  b.textContent = txt;
+  clearTimeout(minuteurBandeau);
+  if (duree) minuteurBandeau = setTimeout(() => b.className = 'bandeau', duree);
+}
+function cacherMessage() { const b = $('bandeau'); b.className = 'bandeau'; }
+
+/* ════════ Organisation par IA ════════ */
+function invite(date, texte, heures, humeur) {
+  return `Tu es l'assistant d'un étudiant qui fait le bilan de sa journée. Il te raconte sa journée à l'oral ou à l'écrit, en vrac. Ton rôle : transformer ce récit en un bilan quotidien clair et structuré.
+
+DATE : ${dateLongue(date)}
+${heures ? 'TEMPS DE TRAVAIL DÉCLARÉ : ' + heures + ' h\n' : ''}${humeur ? 'HUMEUR DÉCLARÉE : ' + humeur + '/5\n' : ''}
+RÉCIT BRUT :
+"""
+${texte}
+"""
+
+Réponds UNIQUEMENT par un objet JSON valide, sans texte avant ou après, sans balises de code, exactement dans ce format :
+{
+  "titre": "titre court de la journée, 60 caractères maximum",
+  "resume": "2 à 3 phrases qui résument la journée à la première personne",
+  "cours": [{"matiere":"", "type":"cours magistral | TD | TP | révision | lecture | examen | autre", "duree":"", "contenu":"ce qui a été vu, en 1 à 2 phrases", "notions":["notion clé", "..."]}],
+  "apprentissages": ["ce qui a été compris ou retenu aujourd'hui"],
+  "taches": [{"intitule":"", "echeance":"date ou échéance si mentionnée, sinon vide"}],
+  "difficultes": ["points de blocage ou d'incompréhension"],
+  "reussites": ["ce qui s'est bien passé"],
+  "objectifs_demain": ["ce qui est prévu ou à faire ensuite"],
+  "motsCles": ["mot-clé", "..."],
+  "conseil": "un conseil court, concret et bienveillant pour demain, basé uniquement sur cette journée"
+}
+
+RÈGLES STRICTES :
+- N'invente rien : n'utilise que ce qui figure dans le récit.
+- Laisse un tableau vide si l'information est absente.
+- Écris en français, à la première personne quand c'est naturel.
+- Conserve les termes techniques, noms de chapitres et de professeurs cités.
+- Reformule proprement les fautes ou hésitations de la dictée vocale.`;
+}
+
+function extraireJSON(txt) {
+  let t = String(txt || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/,'').trim();
+  const d = t.indexOf('{'), f = t.lastIndexOf('}');
+  if (d === -1 || f === -1) throw new Error('Réponse non exploitable');
+  return JSON.parse(t.slice(d, f + 1));
+}
+
+function normaliser(o, anciennesTaches) {
+  const faites = {};
+  (anciennesTaches || []).forEach(t => { if (t && t.intitule) faites[t.intitule.toLowerCase()] = !!t.fait; });
+  const cours = (Array.isArray(o.cours) ? o.cours : []).map(c => ({
+    matiere : nettoie(c && c.matiere) || 'Séance',
+    type    : nettoie(c && c.type),
+    duree   : nettoie(c && c.duree),
+    contenu : nettoie(c && c.contenu),
+    notions : versListe(c && c.notions)
+  })).filter(c => c.matiere || c.contenu);
+  const taches = (Array.isArray(o.taches) ? o.taches : []).map(t => {
+    const it = typeof t === 'string' ? t : nettoie(t && t.intitule);
+    return { intitule: it, echeance: typeof t === 'string' ? '' : nettoie(t && t.echeance), fait: !!faites[it.toLowerCase()] };
+  }).filter(t => t.intitule);
+  return {
+    titre           : nettoie(o.titre).slice(0, 90),
+    resume          : nettoie(o.resume),
+    cours           : cours,
+    apprentissages  : versListe(o.apprentissages),
+    taches          : taches,
+    difficultes     : versListe(o.difficultes),
+    reussites       : versListe(o.reussites),
+    objectifs_demain: versListe(o.objectifs_demain),
+    motsCles        : versListe(o.motsCles).slice(0, 12),
+    conseil         : nettoie(o.conseil)
+  };
+}
+
+async function organiserParIA(date, texte, heures, humeur) {
+  const rep = await fetch(PROXY_URL, {
+    method : 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body   : JSON.stringify({ model: MODEL, max_tokens: 2500, messages: [{ role:'user', content: invite(date, texte, heures, humeur) }] })
+  });
+  const data = await rep.json();
+  if (data.error) throw new Error(data.error.message || 'Erreur du service IA');
+  const txt = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  if (!txt) throw new Error('Réponse IA vide');
+  return extraireJSON(txt);
+}
+
+/* ════════ Organisation locale (secours, sans réseau) ════════ */
+const RE = {
+  cours     : /(cours|amphi|magistral|\btd\b|\btp\b|séance|seance|leçon|lecon|chapitre|module|conférence|conference|travaux (?:pratiques|dirigés|diriges)|labo)/i,
+  tache     : /(je dois|il faut|à faire|a faire|à rendre|a rendre|rendre|réviser|reviser|préparer|preparer|devoir|dm\b|exposé|expose|examen|partiel|interro|contrôle|controle|deadline|pour (?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|demain|la semaine))/i,
+  difficulte: /(difficile|pas compris|rien compris|compliqué|complique|galèr|galer|du mal|bloqué|bloque|perdu|pas réussi|pas reussi|dur\b|stress|fatigu)/i,
+  reussite  : /(réussi|reussi|content|fier|bien passé|bien passe|validé|valide|progress|super|génial|genial|enfin compris|à l'aise|a l'aise)/i,
+  demain    : /(demain|prochaine fois|semaine prochaine|objectif|je compte|je vais)/i,
+  appris    : /(appris|compris|retenu|découvert|decouvert|noté|note que|vu que|expliqué|explique)/i
+};
+const STOP = /^(pendant|avec|ce|cet|cette|le|la|les|un|une|des|du|de|et|puis|où|ou|qui|que|pour|à|a|en|dans|sur|il|elle|on|j|je|nous|ce matin|cet aprem)$/i;
+
+function phrases(txt) {
+  return txt.replace(/([.!?…;])\s+/g, '$1\n').split(/\n+/).map(s => s.trim()).filter(s => s.length > 2);
+}
+function matiereDe(p) {
+  const m = p.match(/(?:cours|amphi|td|tp|séance|seance|leçon|lecon|module|chapitre|examen|partiel|contrôle|controle)\s*(?:magistral\s*)?(?:de |d'|en |sur )([A-Za-zÀ-ÿ0-9'’\- ]{2,40})/i);
+  if (!m) return '';
+  const mots = m[1].trim().split(/\s+/);
+  const gardes = [];
+  for (const mot of mots) {
+    if (STOP.test(mot) || /^\d/.test(mot) || /^(h|heures?|min|minutes?)$/i.test(mot)) break;
+    gardes.push(mot);
+    if (gardes.length >= 4) break;
+  }
+  const nom = gardes.join(' ').replace(/[.,;:]$/, '').trim();
+  return nom ? nom.charAt(0).toUpperCase() + nom.slice(1) : '';
+}
+function dureeDe(p) {
+  const m = p.match(/(\d+(?:[.,]\d+)?)\s*(h\b|heures?|min\b|minutes?)/i);
+  return m ? (m[1] + ' ' + (/^m/i.test(m[2]) ? 'min' : 'h')) : '';
+}
+
+function organiserEnLocal(texte, date) {
+  const o = { titre:'', resume:'', cours:[], apprentissages:[], taches:[], difficultes:[], reussites:[], objectifs_demain:[], motsCles:[], conseil:'' };
+  phrases(texte).forEach(p => {
+    let classe = false;
+    const passe = /(j'ai révisé|j'ai revise|j'ai fait|j'ai relu|j'ai travaillé|j'ai bossé|j'ai suivi|j'ai assisté)/i.test(p);
+    const estTache = RE.tache.test(p) && !passe;
+    if (RE.cours.test(p) && !estTache && !/^demain/i.test(p)) {
+      o.cours.push({ matiere: matiereDe(p) || 'Séance', type:'', duree: dureeDe(p), contenu: p, notions: [] });
+      classe = true;
+    }
+    if (estTache)                      { o.taches.push({ intitule:p, echeance:'', fait:false }); classe = true; }
+    if (RE.difficulte.test(p))         { o.difficultes.push(p); classe = true; }
+    if (RE.reussite.test(p))           { o.reussites.push(p); classe = true; }
+    if (RE.demain.test(p))             { o.objectifs_demain.push(p); classe = true; }
+    if (!classe || (RE.appris.test(p) && !RE.reussite.test(p) && !RE.difficulte.test(p))) { o.apprentissages.push(p); }
+  });
+  o.motsCles = Array.from(new Set(o.cours.map(c => c.matiere).filter(m => m && m !== 'Séance'))).slice(0, 8);
+  const bouts = [];
+  if (o.cours.length)  bouts.push(o.cours.length + (o.cours.length > 1 ? ' séances de travail' : ' séance de travail'));
+  if (o.taches.length) bouts.push(o.taches.length + (o.taches.length > 1 ? ' tâches à faire' : ' tâche à faire'));
+  o.resume = 'Journée du ' + dateLongue(date) + (bouts.length ? ' : ' + bouts.join(', ') + '.' : '.');
+  o.titre  = o.motsCles.length ? o.motsCles.slice(0, 3).join(' · ') : 'Bilan du ' + versDate(date).toLocaleDateString('fr-FR');
+  return o;
+}
+
+/* ════════ Rendu d'un bilan ════════ */
+function bloc(titre, contenu) { return contenu ? `<div class="sec"><h3>${titre}</h3>${contenu}</div>` : ''; }
+function listeHTML(items, classe) {
+  if (!items || !items.length) return '';
+  return `<ul class="liste ${classe || ''}">` + items.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>';
+}
+function tachesHTML(taches, date) {
+  if (!taches || !taches.length) return '';
+  return taches.map((t, i) => `
+    <label class="tache ${t.fait ? 'fait' : ''}">
+      <input type="checkbox" class="t-check" data-date="${esc(date)}" data-i="${i}" ${t.fait ? 'checked' : ''}>
+      <span><span class="t-txt">${esc(t.intitule)}</span>${t.echeance ? `<span class="t-ech">⏰ ${esc(t.echeance)}</span>` : ''}</span>
+    </label>`).join('');
+}
+function coursHTML(cours) {
+  if (!cours || !cours.length) return '';
+  return cours.map(c => `
+    <div class="cours">
+      <div class="cours-tete">
+        <span class="cours-mat">${esc(c.matiere)}</span>
+        ${c.type ? `<span class="etq">${esc(c.type)}</span>` : ''}
+        ${c.duree ? `<span class="etq duree">⏱ ${esc(c.duree)}</span>` : ''}
+      </div>
+      ${c.contenu ? `<div class="cours-txt">${esc(c.contenu)}</div>` : ''}
+      ${c.notions && c.notions.length ? `<div class="notions">${c.notions.map(n => `<span class="notion">${esc(n)}</span>`).join('')}</div>` : ''}
+    </div>`).join('');
+}
+
+function rendreBilan(e, contexte) {
+  const o = e.organise;
+  if (!o) return '';
+  const meta = [];
+  if (e.humeur) meta.push(HUMEURS[e.humeur] + ' humeur ' + e.humeur + '/5');
+  if (e.heures) meta.push('⏱ ' + e.heures + ' h de travail');
+  const actions = contexte === 'jour'
+    ? `<div class="actions">
+         <button type="button" class="btn-s" data-act="copier" data-date="${esc(e.date)}">📋 Copier</button>
+         <button type="button" class="btn-s" data-act="md" data-date="${esc(e.date)}">⬇️ Fichier .md</button>
+         <button type="button" class="btn-s" data-act="imprimer" data-date="${esc(e.date)}">🖨 Imprimer</button>
+         <button type="button" class="btn-s" data-act="reorganiser" data-date="${esc(e.date)}">🔄 Réorganiser</button>
+       </div>`
+    : `<div class="actions">
+         <button type="button" class="btn-s" data-act="ouvrir" data-date="${esc(e.date)}">✏️ Modifier ce jour</button>
+         <button type="button" class="btn-s" data-act="copier" data-date="${esc(e.date)}">📋 Copier</button>
+         <button type="button" class="btn-s" data-act="md" data-date="${esc(e.date)}">⬇️ Fichier .md</button>
+         <button type="button" class="btn-s" data-act="supprimer" data-date="${esc(e.date)}">🗑 Supprimer</button>
+       </div>`;
+  return `
+    <div class="bilan-date">${esc(dateLongue(e.date))}${meta.length ? ' · ' + esc(meta.join(' · ')) : ''}</div>
+    ${o.titre ? `<div class="bilan-titre">${esc(o.titre)}</div>` : ''}
+    ${o.resume ? `<div class="resume">${esc(o.resume)}</div>` : ''}
+    ${bloc('📚 Cours &amp; séances', coursHTML(o.cours))}
+    ${bloc('🧠 Ce que j\'ai appris', listeHTML(o.apprentissages))}
+    ${bloc('✅ À faire', tachesHTML(o.taches, e.date))}
+    ${bloc('🌱 Ce qui a bien marché', listeHTML(o.reussites, 'pos'))}
+    ${bloc('⚠️ Difficultés', listeHTML(o.difficultes, 'neg'))}
+    ${bloc('🎯 Pour la suite', listeHTML(o.objectifs_demain))}
+    ${o.motsCles && o.motsCles.length ? bloc('🏷 Mots-clés', `<div class="mots">${o.motsCles.map(m => `<span class="mot">${esc(m)}</span>`).join('')}</div>`) : ''}
+    ${o.conseil ? `<div class="conseil"><b>Conseil pour demain —</b> ${esc(o.conseil)}</div>` : ''}
+    ${actions}
+    <div class="source">${e.source === 'ia' ? 'Organisé par l\'IA' : 'Organisé automatiquement sur l\'appareil (hors ligne)'}${e.maj ? ' · ' + esc(new Date(e.maj).toLocaleString('fr-FR')) : ''}</div>`;
+}
+
+/* ════════ Export ════════ */
+function bilanEnMd(e) {
+  const o = e.organise;
+  let s = '# ' + dateLongue(e.date) + '\n\n';
+  if (!o) return s + (e.raw || '') + '\n';
+  if (o.titre)  s += '**' + o.titre + '**\n\n';
+  if (e.humeur) s += 'Humeur : ' + HUMEURS[e.humeur] + ' ' + e.humeur + '/5' + (e.heures ? ' · Travail : ' + e.heures + ' h' : '') + '\n\n';
+  else if (e.heures) s += 'Travail : ' + e.heures + ' h\n\n';
+  if (o.resume) s += '> ' + o.resume + '\n\n';
+  if (o.cours && o.cours.length) {
+    s += '## Cours & séances\n';
+    o.cours.forEach(c => {
+      s += '- **' + c.matiere + '**' + (c.type ? ' (' + c.type + ')' : '') + (c.duree ? ' — ' + c.duree : '') + '\n';
+      if (c.contenu) s += '  - ' + c.contenu + '\n';
+      if (c.notions && c.notions.length) s += '  - Notions : ' + c.notions.join(', ') + '\n';
+    });
+    s += '\n';
+  }
+  const sections = [
+    ["Ce que j'ai appris", o.apprentissages],
+    ['Ce qui a bien marché', o.reussites],
+    ['Difficultés', o.difficultes],
+    ['Pour la suite', o.objectifs_demain]
+  ];
+  sections.forEach(([t, l]) => { if (l && l.length) s += '## ' + t + '\n' + l.map(x => '- ' + x).join('\n') + '\n\n'; });
+  if (o.taches && o.taches.length) s += '## À faire\n' + o.taches.map(t => '- [' + (t.fait ? 'x' : ' ') + '] ' + t.intitule + (t.echeance ? ' — ' + t.echeance : '')).join('\n') + '\n\n';
+  if (o.motsCles && o.motsCles.length) s += 'Mots-clés : ' + o.motsCles.join(', ') + '\n\n';
+  if (o.conseil) s += '_Conseil : ' + o.conseil + '_\n\n';
+  return s;
+}
+function telecharger(nom, contenu, type) {
+  const url = URL.createObjectURL(new Blob([contenu], { type: type || 'text/plain;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = nom; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+async function copier(txt) {
+  try { await navigator.clipboard.writeText(txt); message('info', '📋 Bilan copié dans le presse-papiers.', 2500); }
+  catch { message('alerte', "Copie impossible — sélectionne le texte manuellement.", 4000); }
+}
+
+/* ════════ Vue « Aujourd'hui » ════════ */
+function majCompte() {
+  const mots = $('recit').value.trim().split(/\s+/).filter(Boolean).length;
+  $('compte').textContent = mots + (mots > 1 ? ' mots' : ' mot');
+}
+function majEnTete() {
+  const n = Math.max(1, ecartJours(cfg.debutSemestre, dateActive) + 1);
+  $('h-jour').textContent = 'Jour ' + n + ' du semestre · ' + dateLongue(dateActive);
+}
+function rendreJour() {
+  const e = entree(dateActive) || { date: dateActive, raw:'', heures:null, humeur:null, organise:null };
+  $('date-jour').value = dateActive;
+  $('recit').value     = e.raw || '';
+  $('heures').value    = (e.heures == null ? '' : e.heures);
+  document.querySelectorAll('.humeur').forEach(b => b.classList.toggle('on', Number(b.dataset.h) === e.humeur));
+  majCompte(); majEnTete();
+  const carte = $('carte-bilan');
+  if (e.organise) { carte.hidden = false; $('bilan-rendu').innerHTML = rendreBilan(e, 'jour'); }
+  else            { carte.hidden = true;  $('bilan-rendu').innerHTML = ''; }
+  rendreRestes();
+}
+function rendreRestes() {
+  const restes = [];
+  datesTriees().forEach(d => {
+    if (d === dateActive) return;
+    const o = db[d].organise;
+    if (!o || !o.taches) return;
+    o.taches.forEach((t, i) => { if (!t.fait) restes.push({ date:d, i, t }); });
+  });
+  const carte = $('carte-restes');
+  $('restes-compte').textContent = restes.length;
+  if (!restes.length) { carte.hidden = true; $('restes').innerHTML = ''; return; }
+  carte.hidden = false;
+  $('restes').innerHTML = restes.slice(0, 20).map(r => `
+    <label class="tache">
+      <input type="checkbox" class="t-check" data-date="${esc(r.date)}" data-i="${r.i}">
+      <span><span class="t-txt">${esc(r.t.intitule)}</span>
+      <span class="t-ech">${r.t.echeance ? '⏰ ' + esc(r.t.echeance) + ' · ' : ''}noté le ${esc(versDate(r.date).toLocaleDateString('fr-FR'))}</span></span>
+    </label>`).join('');
+}
+
+let minuteurRestes = null;
+
+/* ════════ Vue « Journal » ════════ */
+function rendreJournal() {
+  const q = ($('recherche').value || '').trim().toLowerCase();
+  let dates = datesTriees();
+  if (q) dates = dates.filter(d => (d + ' ' + (db[d].raw || '') + ' ' + JSON.stringify(db[d].organise || {})).toLowerCase().includes(q));
+  $('journal-compte').textContent = dates.length + (dates.length > 1 ? ' jours' : ' jour');
+  const liste = $('liste-journal');
+  if (!dates.length) {
+    liste.innerHTML = `<div class="carte"><div class="vide">${q ? 'Aucun bilan ne correspond à cette recherche.' : "Aucun bilan pour l'instant. Commence par raconter ta journée dans l'onglet « Aujourd'hui »."}</div></div>`;
+    return;
+  }
+  liste.innerHTML = dates.map(d => {
+    const e = db[d], o = e.organise, dt = versDate(d);
+    const badges = [];
+    if (o && o.cours && o.cours.length) badges.push(o.cours.length + (o.cours.length > 1 ? ' séances' : ' séance'));
+    if (o && o.taches) { const ouv = o.taches.filter(t => !t.fait).length; if (ouv) badges.push(ouv + (ouv > 1 ? ' tâches ouvertes' : ' tâche ouverte')); }
+    if (e.heures) badges.push(e.heures + ' h');
+    if (e.humeur) badges.push(HUMEURS[e.humeur]);
+    return `
+    <article class="entree" data-date="${esc(d)}">
+      <div class="entree-tete" data-basculer="${esc(d)}">
+        <div class="e-jour"><b>${dt.getDate()}</b><small>${dt.toLocaleDateString('fr-FR',{month:'short'}).replace('.','')}</small></div>
+        <div class="e-corps">
+          <div class="e-titre">${esc((o && o.titre) || 'Bilan du ' + dt.toLocaleDateString('fr-FR'))}</div>
+          <div class="e-res">${esc((o && o.resume) || e.raw || '')}</div>
+          <div class="e-meta">${badges.map(b => `<span class="notion">${esc(b)}</span>`).join('')}</div>
+        </div>
+      </div>
+      <div class="e-detail">
+        ${o ? rendreBilan(e, 'journal') : `<p class="aide">${esc(e.raw || '')}</p>
+          <div class="actions"><button type="button" class="btn-s" data-act="ouvrir" data-date="${esc(d)}">✏️ Organiser ce jour</button>
+          <button type="button" class="btn-s" data-act="supprimer" data-date="${esc(d)}">🗑 Supprimer</button></div>`}
+        ${e.raw ? `<details style="margin-top:14px"><summary class="aide" style="cursor:pointer">Voir le récit brut</summary><p class="aide" style="margin-top:8px;white-space:pre-wrap">${esc(e.raw)}</p></details>` : ''}
+      </div>
+    </article>`;
+  }).join('');
+}
+
+/* ════════ Vue « Bilan » ════════ */
+function serie() {
+  let n = 0, curseur = new Date();
+  if (!db[isoDuJour(curseur)]) curseur.setDate(curseur.getDate() - 1);
+  while (db[isoDuJour(curseur)]) { n++; curseur.setDate(curseur.getDate() - 1); }
+  return n;
+}
+function rendreStats() {
+  const dates = datesTriees();
+  let heures = 0, humeurs = [], seances = 0, ouvertes = 0;
+  const matieres = {};
+  dates.forEach(d => {
+    const e = db[d];
+    if (e.heures) heures += Number(e.heures) || 0;
+    if (e.humeur) humeurs.push(e.humeur);
+    const o = e.organise; if (!o) return;
+    seances += (o.cours || []).length;
+    (o.cours || []).forEach(c => { const k = (c.matiere || '').trim(); if (k && k.toLowerCase() !== 'séance') matieres[k] = (matieres[k] || 0) + 1; });
+    ouvertes += (o.taches || []).filter(t => !t.fait).length;
+  });
+  const moyenne = humeurs.length ? (humeurs.reduce((a, b) => a + b, 0) / humeurs.length) : 0;
+  $('stats').innerHTML = `
+    <div class="stat"><small>Jours consignés</small><b>${dates.length}</b></div>
+    <div class="stat"><small>Série en cours</small><b>${serie()} 🔥</b></div>
+    <div class="stat"><small>Séances suivies</small><b>${seances}</b></div>
+    <div class="stat"><small>Heures de travail</small><b>${heures ? heures.toFixed(1).replace('.0','') : 0} h</b></div>
+    <div class="stat"><small>Humeur moyenne</small><b>${moyenne ? HUMEURS[Math.round(moyenne)] + ' ' + moyenne.toFixed(1) : '—'}</b></div>
+    <div class="stat"><small>Tâches ouvertes</small><b>${ouvertes}</b></div>`;
+
+  const tri = Object.entries(matieres).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const maxi = tri.length ? tri[0][1] : 1;
+  $('barres-matieres').innerHTML = tri.length
+    ? tri.map(([m, n]) => `<div class="barre-l"><span class="nom">${esc(m)}</span><span class="barre-piste"><span class="barre-fill" style="width:${Math.round(n / maxi * 100)}%"></span></span><span class="val">${n}×</span></div>`).join('')
+    : '<div class="vide">Aucune matière identifiée pour l\'instant.</div>';
+
+  const jours = [];
+  for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); jours.push(isoDuJour(d)); }
+  const maxH = Math.max(1, ...jours.map(d => (db[d] && Number(db[d].heures)) || 0));
+  $('barres-semaine').innerHTML = jours.map(d => {
+    const e = db[d], h = (e && Number(e.heures)) || 0;
+    const largeur = h ? Math.round(h / maxH * 100) : (e ? 3 : 0);
+    return `<div class="barre-l"><span class="nom">${esc(versDate(d).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'}))}</span>
+      <span class="barre-piste"><span class="barre-fill" style="width:${largeur}%"></span></span>
+      <span class="val">${h ? h + ' h' : (e ? '✓' : '—')}</span></div>`;
+  }).join('');
+  $('debut-semestre').value = cfg.debutSemestre;
+}
+
+/* ════════ Actions ════════ */
+async function organiser() {
+  const texte = $('recit').value.trim();
+  if (texte.length < 15) { message('alerte', 'Raconte d\'abord ta journée en quelques phrases 🙂', 4000); return; }
+  const e = entree(dateActive, true);
+  e.raw    = texte;
+  e.heures = $('heures').value ? Number($('heures').value) : null;
+  const btn = $('btn-organiser'), texteBtn = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Organisation…';
+  message('info', '⏳ Ta journée est en cours d\'organisation…');
+  const anciennes = e.organise && e.organise.taches;
+  try {
+    e.organise = normaliser(await organiserParIA(dateActive, texte, e.heures, e.humeur), anciennes);
+    e.source = 'ia';
+    message('info', '✅ Bilan enregistré dans ton journal.', 3500);
+  } catch (err) {
+    e.organise = normaliser(organiserEnLocal(texte, dateActive), anciennes);
+    e.source = 'local';
+    message('alerte', '⚠️ Organisation par l\'IA indisponible (' + err.message + ') — bilan structuré directement sur ton appareil. Tu peux relancer plus tard avec « Réorganiser ».');
+  }
+  e.maj = new Date().toISOString();
+  sauver(); rendreJour();
+  btn.disabled = false; btn.textContent = texteBtn;
+  $('carte-bilan').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function ouvrirJour(date) {
+  dateActive = date;
+  changerVue('saisie');
+  rendreJour();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+function supprimerJour(date) {
+  if (!confirm('Supprimer définitivement le bilan du ' + dateLongue(date) + ' ?')) return;
+  delete db[date]; sauver();
+  rendreJournal(); rendreStats(); rendreJour();
+}
+function imprimer(date) { ouvrirJour(date); setTimeout(() => window.print(), 300); }
+
+function actionner(act, date) {
+  const e = db[date]; if (!e) return;
+  if (act === 'copier')      copier(bilanEnMd(e));
+  else if (act === 'md')     telecharger('bilan-' + date + '.md', bilanEnMd(e), 'text/markdown;charset=utf-8');
+  else if (act === 'imprimer') imprimer(date);
+  else if (act === 'ouvrir') ouvrirJour(date);
+  else if (act === 'supprimer') supprimerJour(date);
+  else if (act === 'reorganiser') { dateActive = date; organiser(); }
+}
+
+/* ════════ Navigation ════════ */
+function changerVue(nom) {
+  document.querySelectorAll('.vue').forEach(v => v.classList.toggle('actif', v.id === 'vue-' + nom));
+  document.querySelectorAll('.onglet').forEach(b => b.classList.toggle('actif', b.dataset.vue === nom));
+  if (nom === 'journal') rendreJournal();
+  if (nom === 'bilan')   rendreStats();
+}
+
+/* ════════ Dictée vocale ════════ */
+let reco = null, ecoute = false;
+function initVoix() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  const btn = $('btn-micro');
+  btn.hidden = false;
+  reco = new SR();
+  reco.lang = 'fr-FR'; reco.continuous = true; reco.interimResults = true;
+  let base = '';
+  reco.onresult = ev => {
+    let definitif = '', partiel = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const t = ev.results[i][0].transcript;
+      if (ev.results[i].isFinal) definitif += t + ' '; else partiel += t;
+    }
+    if (definitif) base = (base + ' ' + definitif).replace(/\s+/g, ' ').trim();
+    $('recit').value = (base + (partiel ? ' ' + partiel : '')).trim();
+    majCompte();
+  };
+  reco.onerror = ev => {
+    ecoute = false; btn.classList.remove('on'); btn.textContent = '🎤 Dicter';
+    if (ev.error === 'not-allowed') message('erreur', 'Micro refusé — autorise le microphone dans les réglages du navigateur.', 6000);
+  };
+  reco.onend = () => {
+    if (ecoute) { try { reco.start(); } catch {} return; }  // relance auto tant que l'utilisateur n'a pas arrêté
+    btn.classList.remove('on'); btn.textContent = '🎤 Dicter';
+    enregistrerBrouillon();
+  };
+  btn.addEventListener('click', () => {
+    if (ecoute) { ecoute = false; reco.stop(); return; }
+    base = $('recit').value.trim();
+    ecoute = true;
+    try { reco.start(); btn.classList.add('on'); btn.textContent = '⏹ Arrêter la dictée'; message('info', '🎤 Je t\'écoute — raconte ta journée.', 3000); }
+    catch { ecoute = false; }
+  });
+}
+
+/* ════════ Brouillon ════════ */
+let minuteurBrouillon = null;
+function enregistrerBrouillon() {
+  const txt = $('recit').value;
+  const e = entree(dateActive, txt.trim().length > 0);
+  if (!e) return;
+  e.raw = txt;
+  e.heures = $('heures').value ? Number($('heures').value) : null;
+  sauver();
+}
+
+/* ════════ Démarrage ════════ */
+function init() {
+  charger();
+  if (!cfg.debutSemestre) cfg.debutSemestre = isoDuJour();
+  dateActive = isoDuJour();
+  rendreJour();
+
+  document.querySelectorAll('.onglet').forEach(b => b.addEventListener('click', () => changerVue(b.dataset.vue)));
+
+  $('date-jour').addEventListener('change', ev => { dateActive = ev.target.value || isoDuJour(); rendreJour(); });
+  $('recit').addEventListener('input', () => { majCompte(); clearTimeout(minuteurBrouillon); minuteurBrouillon = setTimeout(enregistrerBrouillon, 600); });
+  $('heures').addEventListener('change', () => { enregistrerBrouillon(); rendreStats(); });
+  $('humeurs').addEventListener('click', ev => {
+    const b = ev.target.closest('.humeur'); if (!b) return;
+    const h = Number(b.dataset.h);
+    const e = entree(dateActive, true);
+    e.humeur = (e.humeur === h ? null : h);
+    sauver(); rendreJour();
+  });
+  $('btn-organiser').addEventListener('click', organiser);
+  $('btn-vider').addEventListener('click', () => {
+    if (!$('recit').value.trim() || confirm('Effacer le récit de cette journée ? (le bilan déjà organisé est conservé)')) {
+      $('recit').value = ''; enregistrerBrouillon(); majCompte(); cacherMessage();
+    }
+  });
+  $('recherche').addEventListener('input', rendreJournal);
+  $('debut-semestre').addEventListener('change', ev => { cfg.debutSemestre = ev.target.value || isoDuJour(); sauver(); majEnTete(); });
+
+  $('btn-export-md').addEventListener('click', () => {
+    const dates = datesTriees().reverse();
+    if (!dates.length) { message('alerte', 'Aucun bilan à exporter pour l\'instant.', 3000); return; }
+    telecharger('mon-journal-' + isoDuJour() + '.md', '# Mon journal de semestre\n\n' + dates.map(d => bilanEnMd(db[d])).join('\n---\n\n'), 'text/markdown;charset=utf-8');
+  });
+  $('btn-export-json').addEventListener('click', () => telecharger('mon-bilan-sauvegarde-' + isoDuJour() + '.json', JSON.stringify({ config: cfg, entrees: db }, null, 2), 'application/json'));
+  $('btn-import').addEventListener('click', () => $('fichier-import').click());
+  $('fichier-import').addEventListener('change', ev => {
+    const f = ev.target.files && ev.target.files[0]; if (!f) return;
+    const lecteur = new FileReader();
+    lecteur.onload = () => {
+      try {
+        const data = JSON.parse(lecteur.result);
+        const entrees = data.entrees || data;
+        if (typeof entrees !== 'object') throw new Error('format');
+        if (!confirm('Restaurer ' + Object.keys(entrees).length + ' jour(s) ? Les bilans existants aux mêmes dates seront remplacés.')) return;
+        Object.assign(db, entrees);
+        if (data.config && data.config.debutSemestre) cfg.debutSemestre = data.config.debutSemestre;
+        sauver(); rendreJour(); rendreJournal(); rendreStats();
+        message('info', '✅ Sauvegarde restaurée.', 3500);
+      } catch { message('erreur', 'Fichier de sauvegarde illisible.', 5000); }
+      ev.target.value = '';
+    };
+    lecteur.readAsText(f);
+  });
+
+  document.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-act]');
+    if (b) { actionner(b.dataset.act, b.dataset.date); return; }
+    const t = ev.target.closest('[data-basculer]');
+    if (t) t.parentElement.classList.toggle('ouvert');
+  });
+  document.addEventListener('change', ev => {
+    const c = ev.target.closest('.t-check'); if (!c) return;
+    const e = db[c.dataset.date]; if (!e || !e.organise) return;
+    const t = e.organise.taches[Number(c.dataset.i)]; if (!t) return;
+    t.fait = c.checked; sauver();
+    const etiquette = c.closest('.tache'); if (etiquette) etiquette.classList.toggle('fait', t.fait);
+    clearTimeout(minuteurRestes);
+    minuteurRestes = setTimeout(() => {   // petit délai : la tâche cochée reste visible un instant
+      rendreRestes();
+      if ($('vue-journal').classList.contains('actif')) rendreJournal();
+    }, 800);
+  });
+
+  window.addEventListener('beforeunload', enregistrerBrouillon);
+  initVoix();
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

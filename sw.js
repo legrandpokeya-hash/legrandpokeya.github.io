@@ -1,5 +1,5 @@
-const CACHE = 'scamintel-v2';
-const ASSETS = ['/', '/index.html', '/style.css', '/script.js', '/manifest.webmanifest'];
+const CACHE = 'scamintel-v3';
+const ASSETS = ['/', '/index.html', '/style.css', '/script.js', '/manifest.webmanifest', '/journal.html', '/journal.webmanifest'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

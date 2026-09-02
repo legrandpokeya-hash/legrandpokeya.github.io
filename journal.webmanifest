@@ -1,0 +1,15 @@
+{
+  "name": "Mon Bilan — Journal quotidien du semestre",
+  "short_name": "Mon Bilan",
+  "description": "Raconte ta journée, l'application l'organise en bilan quotidien structuré : cours, notions, tâches, difficultés et objectifs.",
+  "start_url": "/journal.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f5fb",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icons/journal-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/journal-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
