@@ -82,11 +82,13 @@ textarea#recit{width:100%;min-height:190px;resize:vertical;line-height:1.65;marg
 .astuce{margin-top:10px;font-size:.82rem;color:var(--encre-2);background:var(--indigo-l);border-left:3px solid var(--indigo);border-radius:0 8px 8px 0;padding:9px 12px}
 
 /* Bandeau d'état */
-.bandeau{display:none;margin-bottom:14px;border-radius:10px;padding:10px 13px;font-size:.86rem;font-weight:500}
-.bandeau.on{display:block}
-.bandeau.info{background:var(--indigo-l);color:var(--indigo);border:1px solid var(--indigo)}
-.bandeau.alerte{background:rgba(176,111,16,.12);color:var(--ambre);border:1px solid var(--ambre)}
-.bandeau.erreur{background:rgba(192,57,43,.1);color:var(--rouge);border:1px solid var(--rouge)}
+.bandeau{display:none;margin-bottom:14px;border-radius:10px;padding:10px 13px;font-size:.86rem;font-weight:500;background-color:var(--carte)}
+.bandeau.on{display:block;position:fixed;left:10px;right:10px;bottom:10px;z-index:60;max-width:960px;margin:0 auto;max-height:45vh;overflow:auto;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.bandeau .fermer{float:right;margin-left:10px;background:transparent;border:none;color:inherit;font-size:1.1rem;line-height:1;padding:0 2px;cursor:pointer}
+#diag-txt{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78rem;background:var(--papier);border:1px solid var(--bord);border-radius:10px;padding:11px;overflow-x:auto}
+.bandeau.info{background-image:linear-gradient(var(--indigo-l),var(--indigo-l));color:var(--indigo);border:1px solid var(--indigo)}
+.bandeau.alerte{background-image:linear-gradient(rgba(176,111,16,.14),rgba(176,111,16,.14));color:var(--ambre);border:1px solid var(--ambre)}
+.bandeau.erreur{background-image:linear-gradient(rgba(192,57,43,.12),rgba(192,57,43,.12));color:var(--rouge);border:1px solid var(--rouge)}
 
 /* Bilan structuré */
 .bilan-titre{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;line-height:1.3}
@@ -203,6 +205,7 @@ ul.liste.neg li::before{background:var(--ambre)}
       <button type="button" class="btn-p" id="btn-organiser">✨ Organiser ma journée</button>
       <button type="button" class="btn-s btn-micro" id="btn-micro" hidden>🎤 Dicter</button>
       <button type="button" class="btn-s" id="btn-vider">Effacer</button>
+      <button type="button" class="btn-s" id="btn-diag" title="Vérifier pourquoi la dictée ne fonctionne pas">🩺 Diagnostic</button>
       <span class="compte" id="compte">0 mot</span>
     </div>
 
@@ -213,6 +216,16 @@ ul.liste.neg li::before{background:var(--ambre)}
   </div>
 
   <div class="bandeau" id="bandeau"></div>
+
+  <div class="carte" id="carte-diag" hidden>
+    <div class="carte-titre">🩺 Diagnostic de la dictée</div>
+    <pre id="diag-txt">…</pre>
+    <div class="actions" style="border:none;padding-top:12px">
+      <button type="button" class="btn-s" id="btn-diag-copier">📋 Copier le diagnostic</button>
+      <button type="button" class="btn-s" id="btn-diag-fermer">Fermer</button>
+    </div>
+    <p class="aide" style="margin-top:8px">Copie ce texte et envoie-le : il indique exactement ce que ton navigateur autorise.</p>
+  </div>
 
   <div class="carte" id="carte-bilan" hidden>
     <div id="bilan-rendu"></div>
@@ -266,6 +279,7 @@ ul.liste.neg li::before{background:var(--ambre)}
       <input type="file" id="fichier-import" accept="application/json,.json" hidden>
     </div>
     <p class="aide" style="margin-top:10px">Tes bilans restent dans ce navigateur (aucun compte, aucun serveur). Pense à exporter une sauvegarde de temps en temps.</p>
+    <p class="aide" id="ligne-version" style="margin-top:4px"></p>
   </div>
 </section>
 
@@ -280,6 +294,15 @@ const MODEL     = 'gpt-4o';
 const CLE_DB    = 'monbilan_entrees_v1';
 const CLE_CFG   = 'monbilan_config_v1';
 const HUMEURS   = { 1:'😫', 2:'😕', 3:'🙂', 4:'😃', 5:'🤩' };
+const VERSION_APP = '2026-09-02 · 3';
+
+/* Journal technique : alimente le bouton « Diagnostic ». */
+const traceVoix = [];
+function traceV(txt) {
+  traceVoix.push(new Date().toLocaleTimeString('fr-FR') + ' — ' + txt);
+  if (traceVoix.length > 30) traceVoix.shift();
+}
+window.addEventListener('error', ev => traceV('ERREUR JS : ' + (ev.message || '?') + ' (' + (ev.filename || '') + ':' + (ev.lineno || 0) + ')'));
 
 /* ════════ Utilitaires ════════ */
 const $ = id => document.getElementById(id);
@@ -327,7 +350,7 @@ let minuteurBandeau = null;
 function message(type, txt, duree) {
   const b = $('bandeau');
   b.className = 'bandeau on ' + type;
-  b.textContent = txt;
+  b.innerHTML = '<button type="button" class="fermer" aria-label="Fermer">×</button>' + esc(txt);
   clearTimeout(minuteurBandeau);
   if (duree) minuteurBandeau = setTimeout(() => b.className = 'bandeau', duree);
 }
@@ -702,6 +725,7 @@ function rendreStats() {
       <span class="val">${h ? h + ' h' : (e ? '✓' : '—')}</span></div>`;
   }).join('');
   $('debut-semestre').value = cfg.debutSemestre;
+  $('ligne-version').textContent = 'Version de l\'application : ' + VERSION_APP;
 }
 
 /* ════════ Actions ════════ */
@@ -790,8 +814,10 @@ function initVoix() {
   }
 
   let base = '';
+  let minuteurDemarrage = null;
 
   function arreter(txt, type) {
+    clearTimeout(minuteurDemarrage);
     ecoute = false;
     if (reco) { try { reco.stop(); } catch {} }
     btn.classList.remove('on');
@@ -807,7 +833,12 @@ function initVoix() {
     r.maxAlternatives = 1;
     try { r.continuous = true; } catch {}
 
+    r.onstart      = () => { clearTimeout(minuteurDemarrage); traceV('démarrage confirmé (onstart)'); };
+    r.onaudiostart = () => { clearTimeout(minuteurDemarrage); traceV('micro ouvert (onaudiostart)'); };
+    r.onspeechstart = () => traceV('parole détectée');
+
     r.onresult = ev => {
+      traceV('résultat reçu (' + (ev.results ? ev.results.length : 0) + ')');
       let definitif = '', partiel = '';
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const t = ev.results[i][0].transcript;
@@ -820,6 +851,8 @@ function initVoix() {
 
     r.onerror = ev => {
       const err = ev.error;
+      clearTimeout(minuteurDemarrage);
+      traceV('erreur : ' + err);
       if (err === 'no-speech' || err === 'aborted') return;   // sans gravité : onend relancera
       if (err === 'not-allowed' || err === 'service-not-allowed') {
         arreter('Micro refusé. ' + (estInstallee()
@@ -836,6 +869,7 @@ function initVoix() {
     };
 
     r.onend = () => {
+      traceV('fin de session (onend), écoute=' + ecoute);
       if (!ecoute) { btn.classList.remove('on'); btn.textContent = '🎤 Dicter'; enregistrerBrouillon(); return; }
       if (++relancesVoix > 40) { arreter('Dictée arrêtée automatiquement (long silence). Relance-la quand tu veux.', 'info'); return; }
       setTimeout(() => {                     // Safari et Chrome coupent après chaque phrase : on relance
@@ -876,12 +910,19 @@ function initVoix() {
     reco = creerReco();
     ecoute = true;
     try {
+      traceV('appel de start()');
       reco.start();
       btn.classList.add('on');
       btn.textContent = '⏹ Arrêter la dictée';
       message('info', "🎤 Je t'écoute — raconte ta journée, puis appuie sur « Arrêter la dictée ».", 5000);
+      clearTimeout(minuteurDemarrage);
+      minuteurDemarrage = setTimeout(() => {          // ni démarrage ni erreur : échec silencieux
+        traceV('aucun démarrage après 3 s');
+        arreter("La dictée ne démarre pas sur ce navigateur (aucune réponse du service de reconnaissance). " + ASTUCE_CLAVIER + " Le bouton « 🩺 Diagnostic » donne le détail.");
+      }, 3000);
     } catch (err) {
       ecoute = false;
+      traceV('start() a échoué : ' + (err && err.message));
       arreter('Démarrage de la dictée impossible' + (err && err.message ? ' (' + err.message + ')' : '') + '. ' + ASTUCE_CLAVIER);
     }
   }
@@ -890,6 +931,51 @@ function initVoix() {
     if (ecoute) arreter('✍️ Dictée arrêtée.', 'info');
     else demarrer();
   });
+}
+
+/* ════════ Diagnostic de la dictée ════════ */
+async function diagnostic() {
+  const l = [];
+  l.push('Mon Bilan — version ' + VERSION_APP);
+  l.push('Adresse : ' + location.href);
+  l.push('Navigateur : ' + navigator.userAgent);
+  l.push('Connexion sécurisée (https) : ' + (window.isSecureContext ? 'oui' : 'NON'));
+  l.push('Ouverte comme application installée : ' + (estInstallee() ? 'oui' : 'non'));
+  l.push('Appareil en ligne : ' + (navigator.onLine ? 'oui' : 'NON'));
+  l.push('API SpeechRecognition : ' + ('SpeechRecognition' in window ? 'oui' : 'non')
+       + ' | webkitSpeechRecognition : ' + ('webkitSpeechRecognition' in window ? 'oui' : 'non'));
+  l.push('Accès aux périphériques (mediaDevices) : ' + (navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? 'oui' : 'non'));
+
+  let perm = 'non consultable';
+  try {
+    if (navigator.permissions && navigator.permissions.query) {
+      const p = await navigator.permissions.query({ name: 'microphone' });
+      perm = p.state;                                   // granted / denied / prompt
+    }
+  } catch (err) { perm = 'non consultable (' + (err && err.name) + ')'; }
+  l.push('Permission micro déclarée : ' + perm);
+
+  let test = 'non testé';
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    try {
+      const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+      flux.getTracks().forEach(t => t.stop());
+      test = 'micro accessible ✔';
+    } catch (err) { test = 'ÉCHEC : ' + (err && err.name) + ' — ' + (err && err.message); }
+  }
+  l.push("Test d'accès au micro : " + test);
+  l.push('');
+  l.push('Derniers événements de dictée :');
+  l.push(traceVoix.length ? traceVoix.join('\n') : "(aucun — le bouton « Dicter » n'a pas encore été utilisé)");
+  return l.join('\n');
+}
+
+async function afficherDiagnostic() {
+  const carte = $('carte-diag');
+  carte.hidden = false;
+  $('diag-txt').textContent = 'Analyse en cours…';
+  carte.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('diag-txt').textContent = await diagnostic();
 }
 
 /* ════════ Brouillon ════════ */
@@ -929,6 +1015,10 @@ function init() {
     }
   });
   $('recherche').addEventListener('input', rendreJournal);
+  $('btn-diag').addEventListener('click', afficherDiagnostic);
+  $('btn-diag-fermer').addEventListener('click', () => { $('carte-diag').hidden = true; });
+  $('btn-diag-copier').addEventListener('click', () => copier($('diag-txt').textContent));
+  $('bandeau').addEventListener('click', ev => { if (ev.target.closest('.fermer')) cacherMessage(); });
   $('debut-semestre').addEventListener('change', ev => { cfg.debutSemestre = ev.target.value || isoDuJour(); sauver(); majEnTete(); });
 
   $('btn-export-md').addEventListener('click', () => {
