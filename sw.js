@@ -1,4 +1,4 @@
-const CACHE = 'scamintel-v3';
+const CACHE = 'scamintel-v4';
 const ASSETS = ['/', '/index.html', '/style.css', '/script.js', '/manifest.webmanifest', '/journal.html', '/journal.webmanifest'];
 
 self.addEventListener('install', e => {

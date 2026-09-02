@@ -207,7 +207,8 @@ ul.liste.neg li::before{background:var(--ambre)}
     </div>
 
     <div class="astuce">
-      💡 Parle librement : cours suivis, notions comprises, devoirs à rendre, difficultés, réussites, ce que tu prévois demain. L'organisation se fait toute seule. Ton texte est enregistré au fur et à mesure.
+      💡 Parle librement : cours suivis, notions comprises, devoirs à rendre, difficultés, réussites, ce que tu prévois demain. L'organisation se fait toute seule. Ton texte est enregistré au fur et à mesure.<br>
+      🎤 Si le bouton « Dicter » ne marche pas sur ton téléphone, appuie dans la zone de texte puis sur la touche micro de ton clavier : elle écrit directement ici.
     </div>
   </div>
 
@@ -761,40 +762,133 @@ function changerVue(nom) {
 }
 
 /* ════════ Dictée vocale ════════ */
-let reco = null, ecoute = false;
+let reco = null, ecoute = false, relancesVoix = 0;
+
+const ASTUCE_CLAVIER = 'Astuce : la touche micro du clavier de ton téléphone fonctionne toujours — appuie dans la zone de texte, puis sur le micro du clavier.';
+function estIOS() {
+  return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function estInstallee() {
+  try { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch { return false; }
+}
+
 function initVoix() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
   const btn = $('btn-micro');
-  btn.hidden = false;
-  reco = new SR();
-  reco.lang = 'fr-FR'; reco.continuous = true; reco.interimResults = true;
+  btn.hidden = false;                     // toujours visible : mieux vaut expliquer que disparaître
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!window.isSecureContext) {
+    btn.addEventListener('click', () => message('erreur', 'La dictée exige une connexion sécurisée (adresse en https). ' + ASTUCE_CLAVIER, 10000));
+    return;
+  }
+  if (!SR) {
+    const detail = estIOS()
+      ? " Sur iPhone, seul Safari gère la dictée intégrée (ni Chrome ni Firefox)."
+      : " Essaie avec Google Chrome.";
+    btn.addEventListener('click', () => message('alerte', 'Ce navigateur ne gère pas la dictée intégrée.' + detail + ' ' + ASTUCE_CLAVIER, 12000));
+    return;
+  }
+
   let base = '';
-  reco.onresult = ev => {
-    let definitif = '', partiel = '';
-    for (let i = ev.resultIndex; i < ev.results.length; i++) {
-      const t = ev.results[i][0].transcript;
-      if (ev.results[i].isFinal) definitif += t + ' '; else partiel += t;
-    }
-    if (definitif) base = (base + ' ' + definitif).replace(/\s+/g, ' ').trim();
-    $('recit').value = (base + (partiel ? ' ' + partiel : '')).trim();
-    majCompte();
-  };
-  reco.onerror = ev => {
-    ecoute = false; btn.classList.remove('on'); btn.textContent = '🎤 Dicter';
-    if (ev.error === 'not-allowed') message('erreur', 'Micro refusé — autorise le microphone dans les réglages du navigateur.', 6000);
-  };
-  reco.onend = () => {
-    if (ecoute) { try { reco.start(); } catch {} return; }  // relance auto tant que l'utilisateur n'a pas arrêté
-    btn.classList.remove('on'); btn.textContent = '🎤 Dicter';
+
+  function arreter(txt, type) {
+    ecoute = false;
+    if (reco) { try { reco.stop(); } catch {} }
+    btn.classList.remove('on');
+    btn.textContent = '🎤 Dicter';
     enregistrerBrouillon();
-  };
-  btn.addEventListener('click', () => {
-    if (ecoute) { ecoute = false; reco.stop(); return; }
+    if (txt) message(type || 'alerte', txt, type === 'info' ? 3000 : 10000);
+  }
+
+  function creerReco() {
+    const r = new SR();
+    r.lang = 'fr-FR';
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+    try { r.continuous = true; } catch {}
+
+    r.onresult = ev => {
+      let definitif = '', partiel = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const t = ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) definitif += t + ' '; else partiel += t;
+      }
+      if (definitif) { base = (base + ' ' + definitif).replace(/\s+/g, ' ').trim(); relancesVoix = 0; }
+      $('recit').value = (base + (partiel ? ' ' + partiel : '')).trim();
+      majCompte();
+    };
+
+    r.onerror = ev => {
+      const err = ev.error;
+      if (err === 'no-speech' || err === 'aborted') return;   // sans gravité : onend relancera
+      if (err === 'not-allowed' || err === 'service-not-allowed') {
+        arreter('Micro refusé. ' + (estInstallee()
+          ? "Depuis l'application installée sur l'écran d'accueil, le micro est parfois bloqué : ouvre plutôt la page dans ton navigateur. "
+          : "Autorise le microphone pour ce site (icône à gauche de l'adresse, ou Réglages du navigateur). ") + ASTUCE_CLAVIER, 'erreur');
+        diagnostiquer().then(precision => { if (precision) message('erreur', precision + ' ' + ASTUCE_CLAVIER, 12000); });
+      } else if (err === 'audio-capture') {
+        arreter("Aucun micro détecté sur cet appareil. " + ASTUCE_CLAVIER, 'erreur');
+      } else if (err === 'network') {
+        arreter("La dictée a besoin d'Internet et le service de reconnaissance est injoignable pour l'instant. " + ASTUCE_CLAVIER);
+      } else {
+        arreter('Dictée interrompue (' + err + '). ' + ASTUCE_CLAVIER);
+      }
+    };
+
+    r.onend = () => {
+      if (!ecoute) { btn.classList.remove('on'); btn.textContent = '🎤 Dicter'; enregistrerBrouillon(); return; }
+      if (++relancesVoix > 40) { arreter('Dictée arrêtée automatiquement (long silence). Relance-la quand tu veux.', 'info'); return; }
+      setTimeout(() => {                     // Safari et Chrome coupent après chaque phrase : on relance
+        if (!ecoute) return;
+        try { reco.start(); }
+        catch {
+          try { reco = creerReco(); reco.start(); }
+          catch { arreter("Impossible de relancer la dictée. " + ASTUCE_CLAVIER); }
+        }
+      }, 300);
+    };
+    return r;
+  }
+
+  // Diagnostic : appelé seulement après un échec, pour préciser la cause.
+  async function diagnostiquer() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
+    try {
+      const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+      flux.getTracks().forEach(t => t.stop());
+      return null;                                   // le micro lui-même est accessible
+    } catch (err) {
+      const nom = err && err.name;
+      if (nom === 'NotFoundError')  return 'Aucun micro détecté sur cet appareil.';
+      if (nom === 'NotAllowedError' || nom === 'SecurityError') {
+        return 'Micro refusé. ' + (estInstallee()
+          ? "Depuis l'application installée sur l'écran d'accueil, le micro est parfois bloqué : ouvre plutôt la page dans ton navigateur."
+          : "Autorise le microphone pour ce site (icône à gauche de l'adresse), puis réessaie.");
+      }
+      return null;
+    }
+  }
+
+  // Démarrage synchrone : Safari exige que start() parte directement du clic.
+  function demarrer() {
     base = $('recit').value.trim();
+    relancesVoix = 0;
+    reco = creerReco();
     ecoute = true;
-    try { reco.start(); btn.classList.add('on'); btn.textContent = '⏹ Arrêter la dictée'; message('info', '🎤 Je t\'écoute — raconte ta journée.', 3000); }
-    catch { ecoute = false; }
+    try {
+      reco.start();
+      btn.classList.add('on');
+      btn.textContent = '⏹ Arrêter la dictée';
+      message('info', "🎤 Je t'écoute — raconte ta journée, puis appuie sur « Arrêter la dictée ».", 5000);
+    } catch (err) {
+      ecoute = false;
+      arreter('Démarrage de la dictée impossible' + (err && err.message ? ' (' + err.message + ')' : '') + '. ' + ASTUCE_CLAVIER);
+    }
+  }
+
+  btn.addEventListener('click', () => {
+    if (ecoute) arreter('✍️ Dictée arrêtée.', 'info');
+    else demarrer();
   });
 }
 
