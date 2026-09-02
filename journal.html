@@ -208,6 +208,7 @@ ul.liste.neg li::before{background:var(--ambre)}
       <button type="button" class="btn-s" id="btn-diag" title="Vérifier pourquoi la dictée ne fonctionne pas">🩺 Diagnostic</button>
       <span class="compte" id="compte">0 mot</span>
     </div>
+    <div id="voix-etat" class="aide" style="margin-top:8px;display:none"></div>
 
     <div class="astuce">
       💡 Parle librement : cours suivis, notions comprises, devoirs à rendre, difficultés, réussites, ce que tu prévois demain. L'organisation se fait toute seule. Ton texte est enregistré au fur et à mesure.<br>
@@ -294,7 +295,7 @@ const MODEL     = 'gpt-4o';
 const CLE_DB    = 'monbilan_entrees_v1';
 const CLE_CFG   = 'monbilan_config_v1';
 const HUMEURS   = { 1:'😫', 2:'😕', 3:'🙂', 4:'😃', 5:'🤩' };
-const VERSION_APP = '2026-09-02 · 3';
+const VERSION_APP = '2026-09-02 · 4';
 
 /* Journal technique : alimente le bouton « Diagnostic ». */
 const traceVoix = [];
@@ -789,6 +790,7 @@ function changerVue(nom) {
 let reco = null, ecoute = false, relancesVoix = 0;
 
 const ASTUCE_CLAVIER = 'Astuce : la touche micro du clavier de ton téléphone fonctionne toujours — appuie dans la zone de texte, puis sur le micro du clavier.';
+const EST_MOBILE = /Android|iP(hone|ad|od)|Mobile/i.test(navigator.userAgent);
 function estIOS() {
   return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
@@ -815,9 +817,38 @@ function initVoix() {
 
   let base = '';
   let minuteurDemarrage = null;
+  let minuteurSilence = null;
+  let dernierResultat = 0, resultatsRecus = 0, cyclesSilence = 0;
+
+  function etat(txt) {
+    const el = $('voix-etat');
+    el.textContent = txt || '';
+    el.style.display = txt ? 'block' : 'none';
+  }
+
+  // Android n'envoie parfois plus rien alors que le micro reste ouvert : on
+  // relance la session, et on prévient si vraiment aucun mot n'arrive.
+  function surveillerSilence() {
+    clearInterval(minuteurSilence);
+    minuteurSilence = setInterval(() => {
+      if (!ecoute) { clearInterval(minuteurSilence); return; }
+      if (Date.now() - dernierResultat < 11000) return;
+      cyclesSilence++;
+      traceV('aucun résultat depuis 11 s (cycle ' + cyclesSilence + ')');
+      dernierResultat = Date.now();
+      if (cyclesSilence >= 2 && resultatsRecus === 0) {
+        arreter("Le micro s'ouvre bien, mais ton téléphone ne renvoie aucun texte. " + ASTUCE_CLAVIER + " Le bouton « 🩺 Diagnostic » donne le détail.");
+        return;
+      }
+      etat('🎙️ Relance de l\'écoute…');
+      try { reco.stop(); } catch {}          // onend relance la session
+    }, 4000);
+  }
 
   function arreter(txt, type) {
     clearTimeout(minuteurDemarrage);
+    clearInterval(minuteurSilence);
+    etat('');
     ecoute = false;
     if (reco) { try { reco.stop(); } catch {} }
     btn.classList.remove('on');
@@ -831,7 +862,7 @@ function initVoix() {
     r.lang = 'fr-FR';
     r.interimResults = true;
     r.maxAlternatives = 1;
-    try { r.continuous = true; } catch {}
+    try { r.continuous = !EST_MOBILE; } catch {}   // Android : sessions courtes relancées
 
     r.onstart      = () => { clearTimeout(minuteurDemarrage); traceV('démarrage confirmé (onstart)'); };
     r.onaudiostart = () => { clearTimeout(minuteurDemarrage); traceV('micro ouvert (onaudiostart)'); };
@@ -839,6 +870,7 @@ function initVoix() {
 
     r.onresult = ev => {
       traceV('résultat reçu (' + (ev.results ? ev.results.length : 0) + ')');
+      dernierResultat = Date.now(); resultatsRecus++; cyclesSilence = 0;
       let definitif = '', partiel = '';
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const t = ev.results[i][0].transcript;
@@ -847,6 +879,7 @@ function initVoix() {
       if (definitif) { base = (base + ' ' + definitif).replace(/\s+/g, ' ').trim(); relancesVoix = 0; }
       $('recit').value = (base + (partiel ? ' ' + partiel : '')).trim();
       majCompte();
+      etat('🎙️ Écoute en cours — ' + resultatsRecus + (resultatsRecus > 1 ? ' passages captés' : ' passage capté'));
     };
 
     r.onerror = ev => {
@@ -915,6 +948,9 @@ function initVoix() {
       btn.classList.add('on');
       btn.textContent = '⏹ Arrêter la dictée';
       message('info', "🎤 Je t'écoute — raconte ta journée, puis appuie sur « Arrêter la dictée ».", 5000);
+      dernierResultat = Date.now();
+      etat('🎙️ Écoute en cours — parle normalement…');
+      surveillerSilence();
       clearTimeout(minuteurDemarrage);
       minuteurDemarrage = setTimeout(() => {          // ni démarrage ni erreur : échec silencieux
         traceV('aucun démarrage après 3 s');
@@ -944,6 +980,7 @@ async function diagnostic() {
   l.push('Appareil en ligne : ' + (navigator.onLine ? 'oui' : 'NON'));
   l.push('API SpeechRecognition : ' + ('SpeechRecognition' in window ? 'oui' : 'non')
        + ' | webkitSpeechRecognition : ' + ('webkitSpeechRecognition' in window ? 'oui' : 'non'));
+  l.push('Appareil mobile détecté : ' + (EST_MOBILE ? 'oui (écoute par sessions courtes)' : 'non (écoute continue)'));
   l.push('Accès aux périphériques (mediaDevices) : ' + (navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? 'oui' : 'non'));
 
   let perm = 'non consultable';
